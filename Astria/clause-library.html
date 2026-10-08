@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clause Library | IWAKI & Astria</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="admin-body">
+
+  <!-- Main Grid Layout -->
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <a href="admin-dashboard.html" class="brand-wrapper">
+          <div class="brand-primary">
+            <span class="brand-title"><img src="assets/iwaki main logo.png" alt="IWAKI Law Office"></span>
+          </div>
+          <div class="brand-divider"></div>
+          <div class="brand-secondary">
+            <span class="brand-astria"><img src="assets/Astria logo.png" alt="Astria Logo"></span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="admin-nav">
+        <a href="admin-dashboard.html" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          Dashboard
+        </a>
+        <a href="clause-library.html" class="admin-nav-item active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          Clause Library
+        </a>
+        <a href="#" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+          AST Logic Engine
+        </a>
+        <a href="client-files.html" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          Client Files
+        </a>
+        <a href="#" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Calendar
+        </a>
+        <a href="#" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          Messages
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      
+      <!-- Top Bar: Search & Filter Controls -->
+      <header class="admin-topbar">
+        <div class="search-bar-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" placeholder="Search Clause, Client id, etc" class="admin-search-input" />
+        </div>
+
+        <div class="filter-group">
+          <select class="filter-dropdown">
+            <option>All Status</option>
+            <option>Active</option>
+            <option>Draft</option>
+            <option>Archived</option>
+          </select>
+          <select class="filter-dropdown">
+            <option>All Rules</option>
+            <option>Strict Compliance</option>
+            <option>Standard Draft</option>
+          </select>
+        </div>
+      </header>
+
+      <!-- Page Header -->
+      <h1 class="dashboard-heading">Clause Library</h1>
+
+      <!-- Main Layout Grid -->
+      <div class="clause-library-layout">
+        
+        <!-- Left Action Column -->
+        <div class="clause-left-col">
+          
+          <!-- Cleared Active Clauses Card -->
+          <div class="widget-card clause-stat-card">
+            <div class="stat-number">0</div>
+            <div class="stat-label">Active Clauses</div>
+            <div class="stat-subtext-badge">
+              <span class="badge-neutral">0%</span>
+              <span class="subtext">Last 30 days.</span>
+            </div>
+
+            <!-- Cleared Bar Chart Area -->
+            <div class="chart-empty-area">
+              <div class="empty-bar-group">
+                <div class="bar-bg"></div>
+                <span class="bar-label">May</span>
+              </div>
+              <div class="empty-bar-group">
+                <div class="bar-bg"></div>
+                <span class="bar-label">Jun</span>
+              </div>
+              <div class="empty-bar-group">
+                <div class="bar-bg"></div>
+                <span class="bar-label">Jul</span>
+              </div>
+              <div class="empty-bar-group">
+                <div class="bar-bg"></div>
+                <span class="bar-label">Aug</span>
+              </div>
+              <div class="empty-bar-group">
+                <div class="bar-bg"></div>
+                <span class="bar-label">Sep</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Green Action Button -->
+          <button class="btn-add-clause-full">ADD NEW CLAUSE</button>
+
+        </div>
+
+        <!-- Right Main Box Container for Clause List -->
+        <div class="clause-list-container">
+          <div class="clause-list-header">
+            <h2 class="widget-title">Clause Directory</h2>
+            <span class="clause-count-tag">0 Clauses</span>
+          </div>
+
+          <!-- Empty State Inside Clause Directory Box -->
+          <div class="logs-empty-state">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#888888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <p class="empty-title">No Clauses in Library</p>
+            <p class="empty-subtitle">Click "ADD NEW CLAUSE" on the left to start adding standardized clauses to your library.</p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

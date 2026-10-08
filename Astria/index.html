@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IWAKI Law Office | Astria Legal Clause Engine</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Sticky Header Navigation -->
+  <header class="site-header">
+    <a href="#home" class="brand-wrapper">
+      <div class="brand-primary">
+        <span class="brand-title"><img src="assets/iwaki main logo.png" alt="IWAKI Law Office Logo"></span>
+      </div>
+      
+      <div class="brand-divider"></div>
+      
+      <div class="brand-secondary">
+        <span class="brand-astria"><img src="assets/Astria logo.png" alt="Astria Logo"></span>
+      </div>
+    </a>
+
+    <nav class="nav-menu" id="nav-menu">
+      <a href="#home" class="nav-link active">Home</a>
+      <a href="#about" class="nav-link">About us</a>
+      <a href="#services" class="nav-link">Services</a>
+      <a href="#contact" class="nav-link">Contact us</a>
+      <a href="auth.html" class="btn-signin">Sign In</a>
+    </nav>
+  </header>
+
+  <!-- Main Hero Section -->
+  <main id="home" class="hero-container section-target">
+    <div class="hero-text-content">
+      <h2 class="hero-eyebrow">IWAKI LAW OFFICE</h2>
+      <h1 class="hero-title">
+        Trusted Legal Representation <br />& Precision Document Services
+      </h1>
+      <p class="hero-description">
+        Complete online client intake forms, request contract drafts, and manage your legal documents effortlessly.
+      </p>
+      
+      <div class="hero-cta-group">
+        <a href="#services" class="btn-pill btn-primary-pill">Explore Services</a>
+        <a href="#contact" class="btn-pill btn-secondary-pill">Contact us</a>
+      </div>
+    </div>
+
+    <!-- Hero Showcase Visual -->
+    <div class="hero-visual">
+      <div class="image-card">
+        <img src="assets/images.jpg" alt="Lady Justice and Gavel in Law Library" />
+      </div>
+    </div>
+  </main>
+
+  <!-- About Section -->
+  <section id="about" class="about-section section-target">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-badge">Who We Are</span>
+        <h2 class="section-title">About IWAKI Law Office</h2>
+        <p class="section-subtitle">
+          Dedicated to providing expert legal counsel and automated document workflows tailored to your business needs.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section id="services" class="services-section section-target">
+    <div class="section-container">
+      
+      <div class="section-header">
+        <span class="section-badge">Practice Areas</span>
+        <h2 class="section-title">Tailored Legal Solutions</h2>
+        <p class="section-subtitle">
+          Combining legal expertise with automated contract workflows to deliver fast, dependable, and transparent results.
+        </p>
+      </div>
+
+      <!-- Services Grid Cards -->
+      <div class="services-grid">
+        
+        <div class="service-card">
+          <div class="card-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          </div>
+          <h3 class="card-title">Contract Drafting & Review</h3>
+          <p class="card-text">High-precision contract creation backed by the Astria Clause Engine, reviewed and finalized by experienced attorneys.</p>
+          <a href="#contact" class="card-link">Learn more <span>&rarr;</span></a>
+        </div>
+
+        <div class="service-card highlight-card">
+          <div class="card-badge">Popular</div>
+          <div class="card-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <h3 class="card-title">Digital Client Intake</h3>
+          <p class="card-text">Effortless digital onboarding and case filing through our secure portal, ensuring rapid turnaround times on inquiry reviews.</p>
+          <a href="#contact" class="card-link">Learn more <span>&rarr;</span></a>
+        </div>
+
+        <div class="service-card">
+          <div class="card-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+          </div>
+          <h3 class="card-title">Corporate & Advisory</h3>
+          <p class="card-text">Comprehensive advisory for business compliance, governance, structure, and enterprise risk management.</p>
+          <a href="#contact" class="card-link">Learn more <span>&rarr;</span></a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Contact Card Section -->
+  <section id="contact" class="contact-section section-target">
+    <div class="contact-card">
+      <div class="contact-header">
+        <span class="section-badge">Get In Touch</span>
+        <h2>Send us a Legal Inquiry</h2>
+        <p>Fill out the details below to send a message directly to our legal team.</p>
+      </div>
+
+      <form id="contact-form" onsubmit="handleSendEmail(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="contact-name">Full Name</label>
+            <input type="text" id="contact-name" placeholder="John Doe" required />
+          </div>
+          <div class="form-group">
+            <label for="contact-email">Email Address</label>
+            <input type="email" id="contact-email" placeholder="john@example.com" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <!-- Philippine Phone Field (+63 Prefix) -->
+          <div class="form-group">
+            <label for="contact-phone">Phone Number (PH)</label>
+            <div class="ph-phone-wrapper">
+              <span class="ph-prefix">+63</span>
+              <input 
+                type="tel" 
+                id="contact-phone" 
+                placeholder="912 345 6789" 
+                pattern="[0-9]{10}"
+                maxlength="10"
+                title="Please enter a 10-digit PH mobile number starting with 9" 
+              />
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="contact-service">Service Category</label>
+            <select id="contact-service">
+              <option value="General Legal Inquiry">General Legal Inquiry</option>
+              <option value="Contract Drafting & Review">Contract Drafting & Review</option>
+              <option value="Online Intake Form">Online Intake Form</option>
+              <option value="Corporate & Advisory">Corporate & Advisory</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="contact-message">Details / Notes</label>
+          <textarea id="contact-message" rows="4" placeholder="Briefly describe your case or request..." required></textarea>
+        </div>
+
+        <button type="submit" class="btn-pill btn-primary-pill btn-submit">
+          Send message &rarr;
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <script>
+    // Navigation link highlighting and dynamic active state tracker
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    navLinks.forEach(link => {
+      link.addEventListener('click', function() {
+        navLinks.forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // Update active navbar item on scroll
+    const sections = document.querySelectorAll('.section-target');
+    window.addEventListener('scroll', () => {
+      let currentSection = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 140;
+        if (window.scrollY >= sectionTop) {
+          currentSection = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${currentSection}`) {
+          link.classList.add('active');
+        }
+      });
+    });
+
+    // Draft email submission handler
+    function handleSendEmail(event) {
+      event.preventDefault();
+      
+      const name = document.getElementById('contact-name').value;
+      const email = document.getElementById('contact-email').value;
+      const rawPhone = document.getElementById('contact-phone').value;
+      const phone = rawPhone ? `+63 ${rawPhone}` : 'Not provided';
+      const service = document.getElementById('contact-service').value;
+      const message = document.getElementById('contact-message').value;
+
+      const subject = encodeURIComponent(`Legal Inquiry: ${service} - ${name}`);
+      const body = encodeURIComponent(
+        `Hello IWAKI Law Team,\n\n` +
+        `I would like to inquire about your services.\n\n` +
+        `--- Inquiry Details ---\n` +
+        `Name: ${name}\n` +
+        `Email: ${email}\n` +
+        `Phone Number: ${phone}\n` +
+        `Service Requested: ${service}\n\n` +
+        `Message / Details:\n${message}\n\n` +
+        `Best regards,\n${name}`
+      );
+
+      window.location.href = `mailto:contact@iwakilaw.com?subject=${subject}&body=${body}`;
+    }
+  </script>
+
+</body>
+</html>
