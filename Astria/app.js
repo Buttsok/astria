@@ -187,13 +187,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const signinForm = document.getElementById('form-signin');
   const signupForm = document.getElementById('form-signup');
+  const contactForm = document.getElementById('contact-form');
 
   if (signinForm) signinForm.addEventListener('submit', handleSignIn);
   if (signupForm) signupForm.addEventListener('submit', handleSignUp);
+  if (contactForm) contactForm.addEventListener('submit', handleContactFormSubmit);
 
   injectGlobalModalUI();
   bindAllButtonsAndLinks();
 });
+
+// ==========================================================================
+// Contact Form & Admin Inbox Logging Handler
+// ==========================================================================
+
+function handleContactFormSubmit(event) {
+  event.preventDefault();
+
+  const name = document.getElementById('contact-name')?.value.trim();
+  const email = document.getElementById('contact-email')?.value.trim();
+  const rawPhone = document.getElementById('contact-phone')?.value.trim();
+  const phone = rawPhone ? `+63 ${rawPhone}` : 'Not provided';
+  const service = document.getElementById('contact-service')?.value || 'General Legal Inquiry';
+  const appointment = document.getElementById('contact-appointment')?.value;
+  const message = document.getElementById('contact-message')?.value.trim();
+
+  if (!name || !email || !message) {
+    if (typeof showToast === 'function') {
+      showToast('Please fill out all required fields.');
+    } else {
+      alert('Please fill out all required fields.');
+    }
+    return;
+  }
+
+  let messagesDB = JSON.parse(localStorage.getItem('admin_messages_db')) || [];
+  const newMsg = {
+    id: 'msg-' + Date.now(),
+    name: name,
+    email: email,
+    phone: phone,
+    service: service,
+    appointment: appointment ? new Date(appointment).toLocaleString() : 'No appointment requested',
+    message: message,
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    unread: true
+  };
+  messagesDB.unshift(newMsg);
+  localStorage.setItem('admin_messages_db', JSON.stringify(messagesDB));
+
+  if (typeof showToast === 'function') {
+    showToast('Inquiry successfully sent and logged into the admin inbox!');
+  } else {
+    alert('Inquiry successfully sent and logged into the admin inbox!');
+  }
+
+  document.getElementById('contact-form')?.reset();
+}
 
 // Dynamically inject Toast, Fallback Modal, PDF/Image Viewer Modal, & Word Docs Editor Modal
 function injectGlobalModalUI() {
@@ -202,12 +252,10 @@ function injectGlobalModalUI() {
   const uiWrapper = document.createElement('div');
   uiWrapper.id = 'global-ui-container';
   uiWrapper.innerHTML = `
-    <!-- Toast Notification -->
     <div id="global-toast" class="global-toast">
       <span id="toast-message">Action triggered successfully.</span>
     </div>
 
-    <!-- Fallback Modal for Pending Pages / Actions -->
     <div id="global-modal-overlay" class="global-modal-overlay">
       <div class="global-modal">
         <div class="global-modal-header">
@@ -223,7 +271,6 @@ function injectGlobalModalUI() {
       </div>
     </div>
 
-    <!-- Dedicated PDF & Image Viewer Modal -->
     <div id="file-viewer-modal-overlay" class="global-modal-overlay">
       <div class="global-modal" style="max-width: 900px; width: 95%;">
         <div class="global-modal-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -236,8 +283,7 @@ function injectGlobalModalUI() {
         
         <div class="global-modal-body" style="padding: 1rem; display: flex; justify-content: center; align-items: center; min-height: 400px; max-height: 78vh; overflow-y: auto; background: #f8fafc;">
           <div id="file-viewer-content" style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-            <!-- Dynamic PDF or Image Content injected here -->
-          </div>
+            </div>
         </div>
 
         <div class="global-modal-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 10px;">
@@ -247,7 +293,6 @@ function injectGlobalModalUI() {
       </div>
     </div>
 
-    <!-- Restored Word / Docs Editor Modal -->
     <div id="word-docs-editor-modal" class="global-modal-overlay">
       <div class="global-modal" style="max-width: 1000px; width: 95%; max-height: 95vh; display: flex; flex-direction: column;">
         <div class="global-modal-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -297,7 +342,7 @@ function bindAllButtonsAndLinks() {
         return;
       }
 
-      const isKnownPage = href.includes('index.html') || href.includes('admin-dashboard.html') || href.includes('clause-library.html') || href.includes('client-files.html') || href.includes('dashboard.html');
+      const isKnownPage = href.includes('index.html') || href.includes('admin-dashboard.html') || href.includes('clause-library.html') || href.includes('client-files.html') || href.includes('messages.html') || href.includes('auth.html')|| href.includes('calendar.html');
       if (!isKnownPage && !href.startsWith('http')) {
         e.preventDefault();
         const cleanName = href.replace('.html', '').replace('-', ' ');
@@ -318,7 +363,7 @@ function bindAllButtonsAndLinks() {
           btnText,
           `Triggered <strong>${btnText}</strong>.`
         );
-      } else if (!target.getAttribute('onclick') && !target.classList.contains('btn-three-dots') && !target.classList.contains('three-dots-btn') && !target.classList.contains('editor-btn')) {
+      } else if (!target.getAttribute('onclick') && !target.classList.contains('btn-three-dots') && !target.classList.contains('three-dots-btn') && !target.classList.contains('editor-btn') && !target.classList.contains('cal-nav-btn')) {
         showToast(`Action triggered: "${btnText}"`);
       }
     }
@@ -549,7 +594,7 @@ async function confirmClientUpload() {
         id: 'cli-' + Date.now(),
         name: folderName,
         formalName: fullFormalName,
-        type: entityType,
+        type: entityType, // 'individual' or 'company'
         files: []
       };
       folders.push(targetFolder);
@@ -629,6 +674,7 @@ function renderClientDirectory() {
     folders.sort((a, b) => b.name.localeCompare(a.name));
   }
 
+  // ALL CLIENT DIRECTORIES VIEW (SEPARATED INTO INDIVIDUALS & ORGANIZATIONS)
   if (!activeClientId) {
     if (heading) heading.innerText = 'Client File Manager';
     if (subheading) subheading.innerText = 'Client Directories';
@@ -636,6 +682,7 @@ function renderClientDirectory() {
     if (singleFolderView) singleFolderView.style.display = 'none';
 
     const filteredFolders = folders.filter(f => f.name.toLowerCase().includes(searchVal));
+
     if (countBadge) countBadge.innerText = `${filteredFolders.length} Folders`;
 
     if (folders.length === 0 && filteredFolders.length === 0) {
@@ -651,41 +698,43 @@ function renderClientDirectory() {
     }
 
     if (folderGrid) {
-      folderGrid.style.display = 'grid';
-      folderGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
-      folderGrid.style.gap = '16px';
+      folderGrid.style.display = 'block'; // switch to block to contain sections
       folderGrid.style.padding = '0';
-      
-      folderGrid.innerHTML = `
-        ${filteredFolders.map(f => `
-          <div class="client-folder-card-box" onclick="openClientFolder('${f.id}')" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative;">
-            <div style="display: flex; align-items: center; gap: 14px; overflow: hidden; flex: 1;">
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#52AB62" stroke-width="2" style="flex-shrink: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              <div style="overflow: hidden; padding-right: 8px;">
-                <h4 style="margin: 0; font-size: 0.98rem; color: #1e293b; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${f.name}</h4>
-                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #64748b;">${f.files ? f.files.length : 0} items</p>
-              </div>
-            </div>
 
-            <div class="folder-card-options" style="position: relative; flex-shrink: 0;" onclick="event.stopPropagation();">
-              <button class="three-dots-btn" onclick="toggleActionMenu(event, 'box-folder-menu-${f.id}')" aria-label="Folder Options" style="background: transparent; border: none; font-size: 1.3rem; cursor: pointer; padding: 4px 6px; color: #64748b;">&#8942;</button>
-              <div id="box-folder-menu-${f.id}" class="action-menu-dropdown right-aligned" style="min-width: 140px;">
-                <button class="action-menu-item" onclick="event.stopPropagation(); renameClientFolder('${f.id}')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                  Rename
-                </button>
-                <button class="action-menu-item item-delete" onclick="event.stopPropagation(); deleteClientFolder('${f.id}')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  Delete
-                </button>
-              </div>
+      const individualFolders = filteredFolders.filter(f => !f.type || f.type === 'individual');
+      const companyFolders = filteredFolders.filter(f => f.type === 'company');
+
+      let htmlContent = '';
+
+      // 1. Individual Clients Section
+      htmlContent += `
+        <div style="margin-bottom: 2rem;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #334155; margin-bottom: 1rem; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0;">Individual Clients (${individualFolders.length})</h3>
+          ${individualFolders.length === 0 ? '<p style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">No individual client directories found.</p>' : `
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+              ${individualFolders.map(f => renderFolderCardHTML(f)).join('')}
             </div>
-          </div>
-        `).join('')}
+          `}
+        </div>
       `;
+
+      // 2. Organization / Business Clients Section
+      htmlContent += `
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #334155; margin-bottom: 1rem; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0;">Organization / Business Clients (${companyFolders.length})</h3>
+          ${companyFolders.length === 0 ? '<p style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">No organization client directories found.</p>' : `
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+              ${companyFolders.map(f => renderFolderCardHTML(f)).join('')}
+            </div>
+          `}
+        </div>
+      `;
+
+      folderGrid.innerHTML = htmlContent;
     }
 
   } else {
+    // INSIDE SPECIFIC CLIENT FOLDER
     const activeFolder = folders.find(f => f.id === activeClientId);
     if (!activeFolder) return navigateBackToFolders();
 
@@ -796,6 +845,35 @@ function renderClientDirectory() {
       `;
     }
   }
+}
+
+// Helper function to render individual folder box card HTML
+function renderFolderCardHTML(f) {
+  return `
+    <div class="client-folder-card-box" onclick="openClientFolder('${f.id}')" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative;">
+      <div style="display: flex; align-items: center; gap: 14px; overflow: hidden; flex: 1;">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#52AB62" stroke-width="2" style="flex-shrink: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        <div style="overflow: hidden; padding-right: 8px;">
+          <h4 style="margin: 0; font-size: 0.98rem; color: #1e293b; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${f.name}</h4>
+          <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #64748b;">${f.files ? f.files.length : 0} items</p>
+        </div>
+      </div>
+
+      <div class="folder-card-options" style="position: relative; flex-shrink: 0;" onclick="event.stopPropagation();">
+        <button class="three-dots-btn" onclick="toggleActionMenu(event, 'box-folder-menu-${f.id}')" aria-label="Folder Options" style="background: transparent; border: none; font-size: 1.3rem; cursor: pointer; padding: 4px 6px; color: #64748b;">&#8942;</button>
+        <div id="box-folder-menu-${f.id}" class="action-menu-dropdown right-aligned" style="min-width: 140px;">
+          <button class="action-menu-item" onclick="event.stopPropagation(); renameClientFolder('${f.id}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            Rename
+          </button>
+          <button class="action-menu-item item-delete" onclick="event.stopPropagation(); deleteClientFolder('${f.id}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // Router: Diverts PDFs/Images to Viewer Modal, DOCX/TXT to TinyMCE Editor Modal
@@ -967,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================================================
-// TinyMCE Word / Docs Engine (Restored Original Flow)
+// TinyMCE Word / Docs Engine
 // ==========================================================================
 
 let activeEditingFileId = null;
@@ -1022,7 +1100,6 @@ function initWordDocsEngine(callback) {
   });
 }
 
-// Opens the Word/Docs TinyMCE Editor Modal
 function openFileInWordEditor(fileId) {
   let folders = JSON.parse(localStorage.getItem('client_folders_db')) || [];
 
@@ -1048,7 +1125,6 @@ function openFileInWordEditor(fileId) {
     modal.style.display = 'flex';
   }
 
-  // Load content into TinyMCE or textarea fallback
   initWordDocsEngine(() => {
     const editorInstance = typeof tinymce !== 'undefined' ? tinymce.get('word-editor-textarea') : null;
     const content = file.htmlContent || `<h3>${file.name}</h3><p>Legal document content...</p>`;
@@ -1100,9 +1176,7 @@ function saveWordDocument() {
   const statusEl = document.getElementById('editor-save-status');
   if (statusEl) statusEl.innerText = 'All changes saved';
   
-  if (typeof showToast === 'function') {
-    showToast(`Document "${file.name}" saved successfully!`);
-  }
+  if (typeof showToast === 'function') showToast(`Document "${file.name}" saved successfully!`);
 
   renderClientDirectory();
 }
@@ -1121,3 +1195,343 @@ function closeClientModal() {
   if (modal) modal.style.display = 'none';
   pendingFiles = [];
 }
+
+/* =========================================
+   CALENDAR LOGIC & PHONE SYNC DB ENGINE
+   ========================================= */
+
+let currentNavMonth = new Date().getMonth();
+let currentNavYear = new Date().getFullYear();
+let activeEventId = null;
+let activeDayViewDate = null; // Tracks which day the user is viewing
+
+function initCalendarDB() {
+    if (!localStorage.getItem('calendar_events_db')) {
+        const defaultEvents = [
+            { id: 'prop-1', title: 'Contract Review (Proposed)', client: 'Juan Dela Cruz', date: '2026-10-20', time: '14:00', status: 'pending' },
+            { id: 'appt-1', title: 'Corp Setup Consult', client: 'Maria Santos', date: '2026-10-31', time: '10:00', status: 'confirmed' },
+            { id: 'appt-2', title: 'Legal Advisory Synnc', client: 'TechCorp Inc.', date: '2026-10-15', time: '14:30', status: 'confirmed' }
+        ];
+        localStorage.setItem('calendar_events_db', JSON.stringify(defaultEvents));
+    }
+}
+
+function getEvents() {
+    return JSON.parse(localStorage.getItem('calendar_events_db')) || [];
+}
+
+function saveEventsDB(events) {
+    localStorage.setItem('calendar_events_db', JSON.stringify(events));
+}
+
+function changeMonth(step) {
+    currentNavMonth += step;
+    if (currentNavMonth < 0) { currentNavMonth = 11; currentNavYear--; }
+    if (currentNavMonth > 11) { currentNavMonth = 0; currentNavYear++; }
+    renderCalendarUI();
+}
+
+function renderCalendarUI() {
+    const monthYearEl = document.getElementById('calendarMonthYear');
+    const gridEl = document.getElementById('calendarGrid');
+    const listEl = document.getElementById('appointmentsList');
+    
+    if (!monthYearEl || !gridEl || !listEl) return;
+
+    initCalendarDB();
+    const events = getEvents();
+
+    // 1. Render Global Appointments List (Right Column)
+    listEl.innerHTML = '';
+    events.sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
+    
+    events.forEach(ev => {
+        const dObj = new Date(ev.date);
+        const monthStr = dObj.toLocaleString('en-US', { month: 'short' });
+        const dayStr = String(dObj.getDate()).padStart(2, '0');
+        
+        let [h, m] = ev.time.split(':');
+        let ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        const displayTime = `${h}:${m} ${ampm}`;
+        const displayPill = `${monthStr} ${dayStr} - ${displayTime}`;
+
+        if(ev.status === 'pending') {
+            listEl.innerHTML += `
+                <div class="appointment-card border-orange" id="${ev.id}">
+                    <div class="appt-details">
+                        <h4 style="font-size: 1.1rem; color: #1e293b;">${ev.title}</h4>
+                        <p style="font-size: 0.85rem; color: #64748b;">Client: ${ev.client}</p>
+                        <span class="pill pill-orange" style="margin-top: 8px;">${displayPill}</span>
+                    </div>
+                    <div class="appt-actions" style="display: flex; gap: 8px;">
+                        <button style="background: #58B673; border: none; border-radius: 4px; padding: 6px; cursor: pointer;" onclick="handleProposal('${ev.id}', 'accept')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </button>
+                        <button style="background: #D9534F; border: none; border-radius: 4px; padding: 6px; cursor: pointer;" onclick="handleProposal('${ev.id}', 'decline')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                </div>`;
+        } else {
+            listEl.innerHTML += `
+                <div class="appointment-card border-green" id="${ev.id}" style="cursor:pointer;" onclick="openEventModal('${ev.id}', '${ev.title.replace(/'/g, "\\'")}', '${ev.date}', '${ev.time}', '${ev.client.replace(/'/g, "\\'")}')">
+                    <div class="appt-details">
+                        <h4 style="font-size: 1.1rem; color: #1e293b;">${ev.title}</h4>
+                        <p style="font-size: 0.85rem; color: #64748b;">Client: ${ev.client}</p>
+                        <span class="pill pill-green" style="margin-top: 8px;">${displayPill}</span>
+                    </div>
+                </div>`;
+        }
+    });
+
+    if(events.length === 0) {
+        listEl.innerHTML = '<p style="color:#64748b; font-size:0.9rem; text-align:center; padding: 20px 0;">No appointments found.</p>';
+    }
+
+    // 2. Render Calendar Grid
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    monthYearEl.innerText = `${months[currentNavMonth]} ${currentNavYear}`;
+    gridEl.innerHTML = '';
+
+    const firstDay = new Date(currentNavYear, currentNavMonth, 1).getDay();
+    const daysInMonth = new Date(currentNavYear, currentNavMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(currentNavYear, currentNavMonth, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+        gridEl.innerHTML += `<div class="cal-cell empty"><span class="date-num">${daysInPrevMonth - firstDay + i + 1}</span></div>`;
+    }
+
+    const today = new Date();
+    for (let i = 1; i <= daysInMonth; i++) {
+        let isToday = (i === today.getDate() && currentNavMonth === today.getMonth() && currentNavYear === today.getFullYear());
+        let currentDayStr = `${currentNavYear}-${String(currentNavMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+        
+        let dayEvents = events.filter(e => e.date === currentDayStr);
+        let eventDots = '';
+        dayEvents.forEach(e => {
+            let color = e.status === 'pending' ? '#E8B87A' : '#58B673';
+            eventDots += `<div style="width:100%; height:4px; border-radius:2px; background-color:${color}; margin-top:3px;"></div>`;
+        });
+
+        let bgStyle = isToday ? 'background-color: #e6f4ea;' : '';
+        let textStyleStr = isToday ? 'color: #58B673; font-weight:800;' : '';
+        
+        // INTERCEPTION: Now calls openDayViewModal instead of openEventModal
+        gridEl.innerHTML += `
+            <div class="cal-cell" style="${bgStyle}" onclick="openDayViewModal('${currentDayStr}')">
+                <span class="date-num" style="${textStyleStr}">${String(i).padStart(2, '0')}</span>
+                <div style="width:100%; display:flex; flex-direction:column; gap:2px; margin-top:4px;">${eventDots}</div>
+            </div>`;
+    }
+
+    const totalCellsRendered = firstDay + daysInMonth;
+    const totalGridCells = totalCellsRendered > 35 ? 42 : 35;
+    for (let i = 1; i <= (totalGridCells - totalCellsRendered); i++) {
+        gridEl.innerHTML += `<div class="cal-cell empty"><span class="date-num">${String(i).padStart(2, '0')}</span></div>`;
+    }
+}
+
+// 3. Modals and Form Submissions
+
+// 3A. Daily View Modal Functions
+function openDayViewModal(dateStr) {
+    activeDayViewDate = dateStr;
+    const modal = document.getElementById('dayViewModal');
+    const title = document.getElementById('dayViewTitle');
+    const list = document.getElementById('dayViewList');
+
+    // Format the date for the title (e.g., "September 08, 2026")
+    const dObj = new Date(dateStr);
+    const displayDate = dObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    title.innerText = `Schedule for ${displayDate}`;
+
+    let events = getEvents().filter(e => e.date === dateStr);
+    events.sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
+
+    list.innerHTML = '';
+    if (events.length === 0) {
+        list.innerHTML = '<p style="text-align: center; color: #64748b; margin: 30px 0; font-size: 0.95rem;">No appointments scheduled for this day.</p>';
+    } else {
+        events.forEach(ev => {
+            let [h, m] = ev.time.split(':');
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            const displayTime = `${h}:${m} ${ampm}`;
+            
+            let borderColor = ev.status === 'pending' ? 'border-orange' : 'border-green';
+            let pillColor = ev.status === 'pending' ? 'pill-orange' : 'pill-green';
+
+            // Populate the mini-cards inside the popup
+            list.innerHTML += `
+                <div class="appointment-card ${borderColor}" style="cursor: pointer; margin-bottom: 12px; transition: transform 0.1s;" onclick="openEventModal('${ev.id}', '${ev.title.replace(/'/g, "\\'")}', '${ev.date}', '${ev.time}', '${ev.client.replace(/'/g, "\\'")}')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <div class="appt-details">
+                        <h4 style="font-size: 1.05rem; color: #1e293b; margin: 0 0 4px 0;">${ev.title}</h4>
+                        <p style="font-size: 0.85rem; color: #64748b; margin: 0;">Client: ${ev.client}</p>
+                        <span class="pill ${pillColor}" style="margin-top: 8px; display: inline-block;">${displayTime}</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('active');
+}
+
+function closeDayViewModal() {
+    const modal = document.getElementById('dayViewModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('active');
+    activeDayViewDate = null;
+}
+
+function openEventModalFromDay() {
+    // Opens the Event Create form specifically for the date currently being viewed
+    let dateToPass = activeDayViewDate || new Date().toISOString().split('T')[0];
+    openEventModal(null, '', dateToPass, '09:00', '');
+}
+
+// 3B. Event CRUD Modal Functions
+function openEventModal(eventId = null, title = '', date = '', time = '', client = '') {
+    const modal = document.getElementById('eventModal');
+    const deleteBtn = document.getElementById('deleteEventBtn');
+    const modalTitle = document.getElementById('modalTitle');
+
+    activeEventId = eventId;
+
+    if (eventId && title) {
+        modalTitle.innerText = "Edit Appointment";
+        deleteBtn.style.display = 'block';
+        document.getElementById('eventTitle').value = title;
+        document.getElementById('eventClient').value = client;
+        document.getElementById('eventDate').value = date;
+        document.getElementById('eventTime').value = time;
+    } else {
+        modalTitle.innerText = "Create New Appointment";
+        deleteBtn.style.display = 'none';
+        document.getElementById('eventForm').reset();
+        if(date) document.getElementById('eventDate').value = date;
+        if(time) document.getElementById('eventTime').value = time;
+    }
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('active'); 
+}
+
+function closeEventModal() {
+    const modal = document.getElementById('eventModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('active');
+    activeEventId = null;
+}
+
+function saveEvent(e) {
+    e.preventDefault();
+    const title = document.getElementById('eventTitle').value;
+    const client = document.getElementById('eventClient').value || 'Unassigned';
+    const date = document.getElementById('eventDate').value;
+    const time = document.getElementById('eventTime').value;
+
+    let events = getEvents();
+
+    if (activeEventId) {
+        let ev = events.find(x => x.id === activeEventId);
+        if(ev) {
+            ev.title = title;
+            ev.client = client;
+            ev.date = date;
+            ev.time = time;
+        }
+        if (typeof showToast === 'function') showToast("Appointment updated.");
+    } else {
+        events.push({
+            id: 'appt-' + Date.now(),
+            title: title,
+            client: client,
+            date: date,
+            time: time,
+            status: 'confirmed'
+        });
+        if (typeof showToast === 'function') showToast("New appointment added.");
+    }
+
+    saveEventsDB(events);
+    closeEventModal();
+    renderCalendarUI();
+    
+    // Automatically refresh the day view popup if it happens to be open in the background
+    if(activeDayViewDate) {
+        openDayViewModal(activeDayViewDate); 
+    }
+}
+
+function deleteEvent() {
+    if (!activeEventId) return;
+    if (confirm("Are you sure you want to delete this appointment?")) {
+        let events = getEvents();
+        events = events.filter(x => x.id !== activeEventId);
+        saveEventsDB(events);
+        if (typeof showToast === 'function') showToast("Appointment removed.");
+        
+        closeEventModal();
+        renderCalendarUI();
+        
+        // Refresh the day view popup
+        if(activeDayViewDate) {
+            openDayViewModal(activeDayViewDate); 
+        }
+    }
+}
+
+function handleProposal(eventId, action) {
+    let events = getEvents();
+    let ev = events.find(x => x.id === eventId);
+    if(!ev) return;
+
+    if (action === 'accept') {
+        ev.status = 'confirmed';
+        if (typeof showToast === 'function') showToast("Appointment Accepted!");
+    } else {
+        events = events.filter(x => x.id !== eventId);
+        if (typeof showToast === 'function') showToast("Appointment Declined.");
+    }
+    
+    saveEventsDB(events);
+    renderCalendarUI();
+}
+
+function syncCalendar() {
+    const icsContent = 
+`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//IWAKI Astria//Legal Calendar Sync//EN
+BEGIN:VEVENT
+UID:event-sync@iwaki.ph
+DTSTAMP:20260908T000000Z
+DTSTART:20260908T100000Z
+DTEND:20260908T110000Z
+SUMMARY:Corp Setup Consult - Maria Santos
+DESCRIPTION:Initial corporate setup consultation overview.
+END:VEVENT
+END:VCALENDAR`;
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'iwaki_schedule_sync.ics');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (typeof showToast === 'function') showToast("Calendar sync file downloaded.");
+}
+
+// Automatically load the calendar UI if we are on the page
+document.addEventListener('DOMContentLoaded', () => {
+    if(window.location.pathname.includes('calendar.html')) {
+        renderCalendarUI();
+    }
+});

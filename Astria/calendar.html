@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar | IWAKI & Astria</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Utility class to bridge app.js modal logic */
+    .hidden { display: none !important; }
+    
+    /* Minor structural tweaks to fit the grid */
+    .calendar-days-header div { padding-bottom: 10px; }
+    .cal-cell { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; position: relative; cursor: pointer; transition: background 0.2s ease; }
+    .cal-cell:hover { background: #f8fafc; }
+    .btn-sync { background: transparent; border: 1px solid #cbd5e1; color: #475569; display: flex; align-items: center; gap: 6px; }
+    .btn-sync:hover { background: #f8fafc; }
+    .cal-nav-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #475569; display: flex; align-items: center; padding: 4px; border-radius: 4px;}
+    .cal-nav-btn:hover { background: #f1f5f9; color: #1e293b; }
+  </style>
+</head>
+<body class="admin-body">
+
+  <!-- Main Grid Layout -->
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <a href="admin-dashboard.html" class="brand-wrapper">
+          <div class="brand-primary">
+            <span class="brand-title"><img src="assets/iwaki main logo.png" alt="IWAKI Law Office"></span>
+          </div>
+          <div class="brand-divider"></div>
+          <div class="brand-secondary">
+            <span class="brand-astria"><img src="assets/Astria logo.png" alt="Astria Logo"></span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="admin-nav">
+        <a href="admin-dashboard.html" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          Dashboard
+        </a>
+        <a href="clause-library.html" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          Clause Library
+        </a>
+        <a href="ast-engine.html" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+          AST Logic Engine
+        </a>
+        <a href="client-files.html" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          Client Files
+        </a>
+        <a href="calendar.html" class="admin-nav-item active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Calendar
+        </a>
+        <a href="messages.html" class="admin-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          Messages
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      
+      <!-- Top Bar: Search & Actions -->
+      <header class="admin-topbar">
+        <div class="search-bar-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" placeholder="Search events, Client id, etc" class="admin-search-input" />
+        </div>
+
+        <div class="filter-group">
+          <button class="btn-green-pill" onclick="openEventModal(null, '', '', '09:00', '')">+ New</button>
+          <button class="btn-green-pill btn-sync" onclick="syncCalendar()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            Sync to Phone
+          </button>
+        </div>
+      </header>
+
+      <!-- Dashboard Grid Body -->
+      <div>
+        <h1 class="dashboard-heading" style="margin-bottom: 2rem;">Schedule & Attorney Availability Overview</h1>
+
+        <div class="schedule-layout">
+            
+            <!-- Left Column: Dynamic Calendar Grid -->
+            <div class="calendar-column">
+                <h2 class="widget-title" style="margin-bottom: 1rem;">Calendar</h2>
+                <div class="green-outline-card" style="background: transparent;">
+                    
+                    <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <button class="cal-nav-btn" onclick="changeMonth(-1)">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        </button>
+                        <h3 id="calendarMonthYear" style="font-size: 1.3rem; margin: 0; color: #1e293b;">Loading...</h3>
+                        <button class="cal-nav-btn" onclick="changeMonth(1)">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                    </div>
+
+                    <div class="calendar-days-header">
+                        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                    </div>
+                    
+                    <!-- App.js will inject the calendar days here automatically -->
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </div>
+            </div>
+
+            <!-- Right Column: Dynamic Appointments List -->
+            <div class="appointments-column">
+                <h2 class="widget-title" style="margin-bottom: 1rem;">Upcoming Appointments</h2>
+                <div class="green-outline-card stack-container" id="appointmentsList" style="max-height: 600px; overflow-y: auto;">
+                    <!-- App.js will inject pending and confirmed events here -->
+                </div>
+            </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 1. Daily Schedule View Modal -->
+  <div id="dayViewModal" class="global-modal-overlay hidden" style="z-index: 1000;">
+      <div class="global-modal" style="max-width: 500px;">
+          <div class="global-modal-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 10px;">
+              <h3 id="dayViewTitle" style="font-size: 1.2rem;">Appointments</h3>
+              <button class="modal-close-btn" onclick="closeDayViewModal()">&times;</button>
+          </div>
+          <div class="global-modal-body" style="padding: 10px 0;">
+              <div class="stack-container" id="dayViewList" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                  <!-- Daily Appointments injected here by JS -->
+              </div>
+          </div>
+          <div class="modal-footer" style="display: flex; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 16px;">
+              <button class="btn-green-pill" onclick="openEventModalFromDay()">+ Add Appointment</button>
+          </div>
+      </div>
+  </div>
+
+  <!-- 2. Create / Edit Appointment Modal (Higher Z-Index to overlap Daily View) -->
+  <div id="eventModal" class="global-modal-overlay hidden" style="z-index: 1050;">
+      <div class="global-modal">
+          <div class="global-modal-header">
+              <h3 id="modalTitle">Manage Appointment</h3>
+              <button class="modal-close-btn" onclick="closeEventModal()">&times;</button>
+          </div>
+          <form id="eventForm" onsubmit="saveEvent(event)">
+              <div class="form-group" style="margin-bottom: 1rem;">
+                  <label class="input-label">Title / Appointment Type</label>
+                  <input type="text" class="modal-input" id="eventTitle" required placeholder="e.g. Corp Setup">
+              </div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                  <label class="input-label">Client Name</label>
+                  <input type="text" class="modal-input" id="eventClient" required placeholder="e.g. Juan Dela Cruz">
+              </div>
+              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                  <div class="form-group">
+                      <label class="input-label">Date</label>
+                      <input type="date" class="modal-input" id="eventDate" required>
+                  </div>
+                  <div class="form-group">
+                      <label class="input-label">Time</label>
+                      <input type="time" class="modal-input" id="eventTime" required>
+                  </div>
+              </div>
+              <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                  <button type="button" class="btn-modal-cancel" id="deleteEventBtn" onclick="deleteEvent()" style="color: #dc2626; border-color: #fca5a5;">Delete</button>
+                  <div style="display: flex; gap: 8px;">
+                      <button type="button" class="btn-modal-cancel" onclick="closeEventModal()">Cancel</button>
+                      <button type="submit" class="btn-modal-confirm">Save Event</button>
+                  </div>
+              </div>
+          </form>
+      </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
