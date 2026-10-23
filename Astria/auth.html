@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In / Sign Up | IWAKI Law Office</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="auth-page-body">
+
+  <!-- Main Homepage Header Navigation -->
+  <header class="site-header">
+    <a href="index.html" class="brand-wrapper">
+      <div class="brand-primary">
+        <span class="brand-title"><img src="assets/iwaki main logo.png" alt="IWAKI Law Office Logo"></span>
+      </div>
+      
+      <div class="brand-divider"></div>
+      
+      <div class="brand-secondary">
+        <span class="brand-astria"><img src="assets/Astria logo.png" alt="Astria Logo"></span>
+      </div>
+    </a>
+
+    <nav class="nav-menu">
+      <a href="index.html#home" class="nav-link">Home</a>
+      <a href="index.html#services" class="nav-link">Services</a>
+      <a href="index.html#about" class="nav-link">About us</a>
+      <a href="index.html#contact" class="nav-link">Contact us</a>
+      <a href="auth.html" class="btn-signin">Sign In</a>
+    </nav>
+  </header>
+
+  <!-- Login/Signup Card Container -->
+  <main class="auth-container">
+    <div class="auth-card">
+      
+      <!-- Interactive Form Tabs -->
+      <div class="auth-tabs">
+        <button class="tab-btn active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
+        <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="form-signin" class="auth-form active">
+        <div class="form-header">
+          <h2>Welcome Back</h2>
+          <p>Access your legal documents and case dashboard.</p>
+        </div>
+
+        <div class="input-group">
+          <label for="signin-email">Email Address</label>
+          <input type="email" id="signin-email" placeholder="name@example.com" required />
+        </div>
+
+        <div class="input-group">
+          <div class="label-row">
+            <label for="signin-password">Password</label>
+          </div>
+          <div class="password-wrapper">
+            <input type="password" id="signin-password" placeholder="Enter your password" required />
+            <button type="button" class="btn-toggle-pass" onclick="togglePass('signin-password', this)">Show</button>
+          </div>
+          <div class="forgot-password">
+            <a href="#" class="forgot-pass">Forgot?</a>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-pill btn-primary-pill btn-full">Sign In</button>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="form-signup" class="auth-form" onsubmit="event.preventDefault(); alert('Account created successfully!');">
+        <div class="form-header">
+          <h2>Get Started</h2>
+          <p>Create your client account to request legal services.</p>
+        </div>
+
+        <div class="input-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" placeholder="John Doe" required />
+        </div>
+
+        <div class="input-group">
+          <label for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" placeholder="name@example.com" required />
+        </div>
+
+        <!-- Philippine Phone Number Field -->
+        <div class="input-group">
+          <label for="signup-phone">Phone Number (PH)</label>
+          <div class="ph-phone-wrapper">
+            <span class="ph-prefix">+63</span>
+            <input 
+              type="tel" 
+              id="signup-phone" 
+              placeholder="912 345 6789" 
+              pattern="[0-9]{10}"
+              maxlength="10"
+              title="Please enter a 10-digit PH mobile number starting with 9" 
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="signup-password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="signup-password" placeholder="Create a strong password" required />
+            <button type="button" class="btn-toggle-pass" onclick="togglePass('signup-password', this)">Show</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-pill btn-primary-pill btn-full">Create Account</button>
+      </form>
+
+    </div>
+  </main>
+
+  <script>
+    function switchTab(tab) {
+      document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+      document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+      document.getElementById('form-signin').classList.toggle('active', tab === 'signin');
+      document.getElementById('form-signup').classList.toggle('active', tab === 'signup');
+    }
+
+    function togglePass(id, btn) {
+      const field = document.getElementById(id);
+      if (field.type === 'password') {
+        field.type = 'text';
+        btn.textContent = 'Hide';
+      } else {
+        field.type = 'password';
+        btn.textContent = 'Show';
+      }
+    }
+  </script>
+<script src="app.js"></script>
+</body>
+</html>
