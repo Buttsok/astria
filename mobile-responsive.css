@@ -1,0 +1,100 @@
+@media (max-width: 768px) {
+  /* 1. Global Safety & Overflow Control */
+  body, html {
+    overflow-x: hidden;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  *, *:before, *:after {
+    box-sizing: inherit;
+  }
+
+  /* 2. Admin Layout Stacking */
+  .admin-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 12px 15px;
+  }
+
+  .admin-main, .main-content, .content-area {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 12px !important;
+  }
+
+  /* 3. Header & Navigation Protection (Keeps buttons visible & intact) */
+  header, .admin-header, .top-bar, .header-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    width: 100%;
+  }
+
+  /* Ensure buttons and control groups don't get crushed or hidden */
+  .header-buttons, .action-buttons, .btn-group, .admin-header button, header button {
+    display: inline-flex;
+    align-items: center;
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* 4. Flexible Grids & Cards (Targeted conversion without breaking inner contents) */
+  .calendar-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important; /* Keeps calendar days aligned */
+    gap: 2px !important;
+    width: 100% !important;
+  }
+
+  .grid, .stats-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .card, .appointment-card, .cal-cell {
+    max-width: 100%;
+  }
+
+  /* 5. Horizontal Table Scrolling for Data Pages */
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* ==========================================
+   Emergency Override: Force Headers & Buttons Visible
+   ========================================== */
+@media (max-width: 768px) {
+  header *, .admin-header *, .top-bar *, .header-actions *, .action-buttons * {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  header, .admin-header, .top-bar, .header-actions, .action-buttons {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    max-height: none !important;
+  }
+
+  button, .btn, .btn-primary, .btn-secondary {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}

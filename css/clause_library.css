@@ -1,0 +1,223 @@
+/* ==========================================================================
+   Clause Library Dedicated Layout & Search Bar Fixes
+   ========================================================================== */
+
+/* Main Grid Layout */
+.clause-library-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+
+.clause-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Stat Card */
+.clause-stat-card {
+  border: 2px solid #52AB62 !important;
+  border-radius: 20px !important;
+  padding: 1.5rem !important;
+  background-color: #FFFFFF;
+}
+
+.clause-stat-card .stat-number {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #1A1A1A;
+}
+
+.clause-stat-card .stat-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #222222;
+  margin-top: 0.25rem;
+}
+
+.stat-subtext-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.badge-neutral {
+  background-color: #EFEFEF;
+  color: #666666;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+}
+
+.stat-subtext-badge .subtext {
+  font-size: 0.8rem;
+  color: #777777;
+}
+
+/* Chart Area */
+.chart-empty-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 110px;
+  padding-top: 0.5rem;
+}
+
+.empty-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 18%;
+  height: 100%;
+}
+
+.empty-bar-group .bar-bg {
+  width: 100%;
+  height: 100%;
+  background-color: #F6F1EA;
+  border-radius: 8px;
+}
+
+.empty-bar-group .bar-label {
+  font-size: 0.75rem;
+  color: #888888;
+  font-weight: 500;
+}
+
+/* Add Clause Button */
+.btn-add-clause-full {
+  width: 100%;
+  background-color: #52AB62;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 30px;
+  padding: 0.95rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-add-clause-full:hover {
+  background-color: #439352;
+  transform: translateY(-1px);
+}
+
+/* Clause List Container & Topbar Search Bar Fixes */
+.clause-list-container {
+  background-color: #FFFFFF;
+  border: 2px solid #52AB62;
+  border-radius: 20px;
+  padding: 1.5rem;
+  min-height: 480px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.clause-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.clause-count-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #777777;
+  background-color: #FAF8F5;
+  padding: 0.25rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid #E5DCD0;
+}
+
+/* Ensure Topbar Controls Stay Fixed and Aligned */
+.admin-topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.search-bar-wrapper {
+  position: relative;
+  width: 380px;
+}
+
+.admin-search-input {
+  width: 100%;
+  padding: 0.65rem 1rem 0.65rem 2.6rem;
+  border-radius: 50px;
+  border: 1px solid #E2DBD0;
+  background-color: #FFFFFF;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.filter-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.filter-dropdown {
+  padding: 0.65rem 1.25rem;
+  border-radius: 50px;
+  border: 1px solid #E2DBD0;
+  background-color: #FFFFFF;
+  font-size: 0.88rem;
+  color: #555555;
+  outline: none;
+  cursor: pointer;
+}
+
+@media (max-width: 1200px) {
+  .clause-library-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ensure modal overlay starts hidden via opacity/visibility, not display: none */
+.global-modal-overlay {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.global-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Ensure global toast element stays entirely hidden on the Clause Library page */
+#global-toast {
+  display: none !important;
+}
+
+/*   Viewport Overflow & Scroll Fix for Clause Library */
+
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+.admin-layout {
+  min-height: 100vh;
+}
+
+/* Force zero height on any leftover global containers so they don't create blank space */
+#global-ui-container {
+  display: none !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
