@@ -3,6 +3,12 @@
  * Handles file uploads, management, and TinyMCE Word Editor
  */
 
+// Initialize Supabase Client for Cloud Storage Sync
+const SUPABASE_URL = 'https://cyssvluzwzsftsskveet.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5c3N2bHV6d3pzZnRzc2t2ZWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDM5NTgsImV4cCI6MjEwNzU3OTk1OH0.kfBHS-DwCjZKdZ4_KkVTLXDuUi-niTGV5dbuUs3MU3w';
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+window.supabaseClient = supabase;
+
 let activeClientId = null;
 let pendingFiles = [];
 
@@ -185,6 +191,19 @@ async function confirmClientUpload() {
       htmlContent: storedHtmlContent,
       dataUrl: storedDataUrl
     });
+
+    // --- SUPABASE STORAGE CLOUD SYNC ---
+    if (window.supabaseClient) {
+      try {
+        const filePath = `${targetFolder.name}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await window.supabaseClient.storage
+          .from('client-documents')
+          .upload(filePath, file);
+        if (uploadError) console.error('Supabase storage sync error:', uploadError.message);
+      } catch (err) {
+        console.error('Failed to upload file to Supabase storage:', err);
+      }
+    }
   }
 
   saveFoldersDB(folders);
