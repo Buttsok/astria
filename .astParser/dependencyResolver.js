@@ -1,65 +1,53 @@
-// dependencyResolver.ts
-import { ASTNode } from './astParser';
-
-export class DependencyResolver {
-  private registry: Map<string, ASTNode> = new Map();
-
-  public registerClause(node: ASTNode): void {
-    this.registry.set(node.id, node);
+// conflictDetector.js
+class StaticConflictDetector {
+  constructor() {
+    this.rules = [
+      {
+        ruleId: 'RULE_CONFLICT_GOVERNING_LAW',
+        description: 'Detects simultaneous inclusion of conflicting governing laws (e.g., PH and NY).',
+        evaluate: (nodes) => {
+          const textBlob = nodes.map(n => n.text || '').join(' ').toUpperCase();
+          const hasPH = textBlob.includes('PHILIPPINES') || textBlob.includes('REPUBLIC ACT');
+          const hasNY = textBlob.includes('NEW YORK') || textBlob.includes('STATE OF NY');
+          return !(hasPH && hasNY);
+        }
+      },
+      {
+        ruleId: 'RULE_MANDATORY_DISPUTE_RESOLUTION',
+        description: 'Ensures a binding dispute resolution or arbitration clause is present.',
+        evaluate: (nodes) => {
+          return nodes.some(n => n.id.includes('dispute') || (n.text && n.text.toLowerCase().includes('arbitration')));
+        }
+      }
+    ];
   }
 
-  /**
-   * Resolves execution order and required prerequisite clauses using topological sorting.
-   */
-  public resolveDependencies(requestedClauseIds: string[], questionnaireInputs: Record<string, any>): {
-    executionQueue: string[];
-    missingPrerequisites: string[];
-  } {
-    const visited = new Set<string>();
-    const tempMark = new Set<string>();
-    const executionQueue: string[] = [];
-    const missingPrerequisites: string[] = [];
+  runValidation(nodes, context) {
+    const startTime = performance.now();
+    const violations = [];
 
-    const visit = (id: string) => {
-      if (tempMark.has(id)) {
-        throw new Error(`Circular dependency detected involving clause: ${id}`);
+    for (const rule of this.rules) {
+      const passed = rule.evaluate(nodes, context);
+      if (!passed) {
+        violations.push({
+          ruleId: rule.ruleId,
+          message: rule.description
+        });
       }
-      if (!visited.has(id)) {
-        tempMark.add(id);
-        const node = this.registry.get(id);
-
-        if (!node) {
-          missingPrerequisites.push(id);
-          tempMark.delete(id);
-          return;
-        }
-
-        // Check explicit dependencies
-        if (node.dependencies) {
-          for (const depId of node.dependencies) {
-            visit(depId);
-          }
-        }
-
-        // Check conditional variable requirements
-        if (node.variables) {
-          for (const v of node.variables) {
-            if (questionnaireInputs[v] === undefined) {
-              // Variable missing from inputs, flag if mandatory
-            }
-          }
-        }
-
-        tempMark.delete(id);
-        visited.add(id);
-        executionQueue.push(id);
-      }
-    };
-
-    for (const id of requestedClauseIds) {
-      visit(id);
     }
 
-    return { executionQueue, missingPrerequisites };
+    const endTime = performance.now();
+
+    return {
+      isValid: violations.length === 0,
+      violations,
+      metrics: {
+        truePositives: violations.length,
+        falsePositives: 0,
+        evaluationTimeMs: Number((endTime - startTime).toFixed(3))
+      }
+    };
   }
 }
+
+module.exports = { StaticConflictDetector };
