@@ -158,6 +158,36 @@
   cursor: pointer;
 }
 
+.settings-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #E2DBD0;
+  background-color: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.settings-btn:hover {
+  background-color: #f8fafc;
+  border-color: #58B673;
+}
+
+.settings-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: #888888;
+  transition: stroke 0.2s ease;
+}
+
+.settings-btn:hover svg {
+  stroke: #58B673;
+}
+
 /* Grid Dashboard Body */
 .dashboard-body-grid {
   display: grid;
@@ -226,4 +256,129 @@
   .dashboard-body-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Account Settings Modal Styles */
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.settings-modal {
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.settings-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #E2DBD0;
+}
+
+.settings-modal-header h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #222222;
+  margin: 0;
+}
+
+.settings-modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+.settings-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #555555;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #E2DBD0;
+}
+
+.settings-section .form-group {
+  margin-bottom: 1rem;
+}
+
+.settings-section .form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555555;
+  margin-bottom: 0.5rem;
+}
+
+.settings-section .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #555555;
+}
+
+.settings-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #E2DBD0;
+}
+
+/* Toast Notification Styles */
+.toast-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #222222;
+  color: #FFFFFF;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1100;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.toast-notification.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-notification.toast-exit {
+  opacity: 0;
+  transform: translateY(-20px);
 }

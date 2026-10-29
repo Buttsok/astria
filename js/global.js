@@ -127,6 +127,83 @@ function closeGlobalModal() {
   if (overlay) overlay.classList.remove('active');
 }
 
+// ==========================================================================
+// 5. Account Settings Modal
+// ==========================================================================
+
+function showSettings() {
+  // Remove existing modal
+  const existingModal = document.querySelector('.settings-modal-overlay');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'settings-modal-overlay';
+  modal.innerHTML = `
+    <div class="settings-modal">
+      <div class="settings-modal-header">
+        <h3>Account Settings</h3>
+        <button class="modal-close-btn" onclick="closeSettings()">&times;</button>
+      </div>
+      <div class="settings-modal-body">
+        <div class="settings-section">
+          <h4>Profile Information</h4>
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" class="modal-input" value="John Doe">
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" class="modal-input" value="john@example.com">
+          </div>
+        </div>
+        <div class="settings-section">
+          <h4>Security</h4>
+          <div class="form-group">
+            <label>Change Password</label>
+            <input type="password" class="modal-input" placeholder="Enter new password">
+          </div>
+        </div>
+        <div class="settings-section">
+          <h4>Notifications</h4>
+          <label class="checkbox-label">
+            <input type="checkbox" checked> Email notifications for new messages
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" checked> Email notifications for appointment reminders
+          </label>
+        </div>
+      </div>
+      <div class="settings-modal-footer">
+        <button class="btn-modal-cancel" onclick="closeSettings()">Cancel</button>
+        <button class="btn-modal-confirm" onclick="saveSettings()">Save Changes</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Add modal close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeSettings();
+    }
+  });
+}
+
+function closeSettings() {
+  const modal = document.querySelector('.settings-modal-overlay');
+  if (modal) {
+    modal.remove();
+  }
+}
+
+function saveSettings() {
+  showToast('Settings saved successfully!');
+  closeSettings();
+}
+
 function closeFileViewer() {
   const overlay = document.getElementById('file-viewer-modal-overlay');
   if (overlay) overlay.classList.remove('active');
