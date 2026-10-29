@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages / Inbox | IWAKI & Astria</title>
+  <link rel="stylesheet" href="css/client_messages.css" />
+</head>
+<body class="admin-body">
+
+  <!-- Main Grid Layout -->
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="client-sidebar">
+      <div class="sidebar-brand">
+        <a href="client-dashboard.html" class="brand-wrapper">
+          <div class="brand-primary">
+            <span class="brand-title"><img src="assets/iwaki main logo.png" alt="IWAKI Law Office"></span>
+          </div>
+          <div class="brand-divider"></div>
+          <div class="brand-secondary">
+            <span class="brand-astria"><img src="assets/Astria logo.png" alt="Astria Logo"></span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="client-nav">
+        <a href="client-dashboard.html" class="client-nav-item active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          Dashboard
+        </a>
+        <a href="file-manager.html" class="client-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          My Files
+        </a>
+        <a href="client-calendar.html" class="client-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Calendar
+        </a>
+        <a href="client-messages.html" class="client-nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          Messages
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      
+      <!-- Top Bar Controls -->
+      <header class="admin-topbar">
+        <div class="search-bar-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="message-search-input" placeholder="Search messages, client emails..." class="admin-search-input" />
+        </div>
+
+        <div class="filter-group">
+          <select id="message-filter-dropdown" class="filter-dropdown" onchange="filterInboxMessages(this.value)">
+            <option value="all">All Messages</option>
+            <option value="unread">Unread</option>
+            <option value="archived">Archived</option>
+          </select>
+          <button class="btn-green-pill" onclick="openNewMessageModal()">+ Compose Message</button>
+        </div>
+      </header>
+
+      <!-- Main Messaging Interface Grid -->
+      <div style="display: grid; grid-template-columns: 360px 1fr; gap: 20px; margin-top: 10px; height: calc(100vh - 180px);">
+        
+        <!-- Left Pane: Message Threads List (Cleared Empty State) -->
+        <div class="widget-card" style="border: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: #ffffff;">
+          <div style="padding: 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="widget-title" style="font-size: 1rem;">Conversations</h2>
+            <span class="clause-count-tag" id="inbox-count-badge">0 Threads</span>
+          </div>
+
+          <div id="thread-list-container" style="flex: 1; overflow-y: auto;">
+            <div class="logs-empty-state" style="padding: 40px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#888888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <p class="empty-title" style="font-weight: 700; color: #1e293b; margin-top: 10px; font-size: 0.95rem;">No Conversations</p>
+              <p class="empty-subtitle" style="color: #64748b; font-size: 0.82rem; margin-top: 4px;">Client inquiries and direct messages will appear here.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Pane: Active Message Viewer & Reply Box (Cleared Empty State) -->
+        <div class="widget-card" style="border: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 0; background: #ffffff; overflow: hidden;">
+          
+          <!-- Message Header -->
+          <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 id="active-sender-name" style="margin: 0; font-size: 1.05rem; color: #1e293b; font-weight: 700;">Select a Conversation</h3>
+              <span id="active-sender-email" style="font-size: 0.8rem; color: #64748b;">No thread selected</span>
+            </div>
+          </div>
+
+          <!-- Message Body Content Area (Empty State) -->
+          <div style="flex: 1; padding: 20px; overflow-y: auto; background: #ffffff; display: flex; align-items: center; justify-content: center;">
+            <div style="text-align: center; color: #94a3b8;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin-bottom: 8px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              <p style="font-size: 0.9rem; font-weight: 600; color: #64748b;">No Message Selected</p>
+              <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">Choose a thread from the left panel to view messages.</p>
+            </div>
+          </div>
+
+          <!-- Reply Input Bar (Disabled / Placeholder state) -->
+          <div style="padding: 16px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="reply-message-input" style="flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; outline: none; background: #f1f5f9;" placeholder="Select a thread to reply..." disabled />
+            <button class="btn-green-pill btn-sm" style="opacity: 0.6; cursor: not-allowed;" disabled>Send Reply</button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Global Utilities -->
+  <script src="js/global.js"></script>
+
+  <!-- Page-Specific Logic -->
+  <script src="js/messages.js"></script>
+
+  <script>
+    // Message-specific functions (call global showToast if available)
+    function openNewMessageModal() {
+      showGlobalModal('Compose Message', 'New direct messaging module initialization ready.');
+    }
+
+    function filterInboxMessages(filterVal) {
+      if (typeof showToast === 'function') {
+        showToast(`Inbox filtered by: ${filterVal}`);
+      } else {
+        alert(`Inbox filtered by: ${filterVal}`);
+      }
+    }
+  </script>
+</body>
+</html>
