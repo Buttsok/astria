@@ -4,68 +4,7 @@
  */
 
 // ==========================================================================
-// 1. Database Initialization & Helpers
-// ==========================================================================
-
-function initDatabase() {
-  if (!localStorage.getItem('users_db')) {
-    const defaultUsers = [
-      {
-        id: '1',
-        name: 'Admin User',
-        email: 'admin@iwaki.ph',
-        phone: '+63 9123456789',
-        password: 'password123',
-        role: 'admin'
-      },
-      {
-        id: '2',
-        name: 'Client User',
-        email: 'client@example.com',
-        phone: '+63 9876543210',
-        password: 'password123',
-        role: 'client'
-      }
-    ];
-    localStorage.setItem('users_db', JSON.stringify(defaultUsers));
-  }
-}
-
-// Helper methods for reading & writing to mock database
-function getUsersDB() {
-  return JSON.parse(localStorage.getItem('users_db')) || [];
-}
-
-function saveUsersDB(users) {
-  localStorage.setItem('users_db', JSON.stringify(users));
-}
-
-function getEvents() {
-  return JSON.parse(localStorage.getItem('calendar_events_db')) || [];
-}
-
-function saveEventsDB(events) {
-  localStorage.setItem('calendar_events_db', JSON.stringify(events));
-}
-
-function getFoldersDB() {
-  return JSON.parse(localStorage.getItem('client_folders_db')) || [];
-}
-
-function saveFoldersDB(folders) {
-  localStorage.setItem('client_folders_db', JSON.stringify(folders));
-}
-
-function getMessagesDB() {
-  return JSON.parse(localStorage.getItem('admin_messages_db')) || [];
-}
-
-function saveMessagesDB(messages) {
-  localStorage.setItem('admin_messages_db', JSON.stringify(messages));
-}
-
-// ==========================================================================
-// 2. UI Helper & Error Message Handlers
+// 1. UI Helper & Error Message Handlers
 // ==========================================================================
 
 function showAuthError(formId, message) {
@@ -92,7 +31,7 @@ function clearAuthErrors() {
 }
 
 // ==========================================================================
-// 3. Global Toast Notification System
+// 2. Global Toast Notification System
 // ==========================================================================
 
 function showToast(message) {
@@ -109,7 +48,7 @@ function showToast(message) {
 }
 
 // ==========================================================================
-// 4. Global Modal System
+// 3. Global Modal System
 // ==========================================================================
 
 function showGlobalModal(title, description) {
@@ -128,11 +67,10 @@ function closeGlobalModal() {
 }
 
 // ==========================================================================
-// 5. Account Settings Modal
+// 4. Account Settings Modal & Dropdown Utilities
 // ==========================================================================
 
 function showSettings() {
-  // Remove existing modal
   const existingModal = document.querySelector('.settings-modal-overlay');
   if (existingModal) {
     existingModal.remove();
@@ -151,40 +89,42 @@ function showSettings() {
           <h4>Profile Information</h4>
           <div class="form-group">
             <label>Full Name</label>
-            <input type="text" class="modal-input" value="John Doe">
+            <input type="text" class="modal-input" id="settings-fullname" placeholder="Enter full name">
           </div>
           <div class="form-group">
             <label>Email Address</label>
-            <input type="email" class="modal-input" value="john@example.com">
+            <input type="email" class="modal-input" id="settings-email" disabled>
           </div>
         </div>
         <div class="settings-section">
           <h4>Security</h4>
           <div class="form-group">
             <label>Change Password</label>
-            <input type="password" class="modal-input" placeholder="Enter new password">
+            <input type="password" class="modal-input" id="settings-password" placeholder="Enter new password">
           </div>
-        </div>
-        <div class="settings-section">
-          <h4>Notifications</h4>
-          <label class="checkbox-label">
-            <input type="checkbox" checked> Email notifications for new messages
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" checked> Email notifications for appointment reminders
-          </label>
         </div>
       </div>
       <div class="settings-modal-footer">
         <button class="btn-modal-cancel" onclick="closeSettings()">Cancel</button>
-        <button class="btn-modal-confirm" onclick="saveSettings()">Save Changes</button>
+        <button class="btn-modal-confirm" onclick="saveAccountSettings()">Save Changes</button>
       </div>
     </div>
   `;
 
   document.body.appendChild(modal);
 
-  // Add modal close on overlay click
+  // Populate fields if session exists
+  if (typeof supabase !== 'undefined') {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && session.user) {
+        const emailInput = document.getElementById('settings-email');
+        const nameInput = document.getElementById('settings-fullname');
+        if (emailInput) emailInput.value = session.user.email;
+        if (nameInput) nameInput.value = session.user.user_metadata?.full_name || '';
+      }
+    });
+  }
+
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       closeSettings();
@@ -199,9 +139,23 @@ function closeSettings() {
   }
 }
 
-function saveSettings() {
-  showToast('Settings saved successfully!');
-  closeSettings();
+async function saveAccountSettings() {
+  const fullName = document.getElementById('settings-fullname')?.value.trim();
+  const newPassword = document.getElementById('settings-password')?.value;
+
+  if (typeof supabase === 'undefined') return;
+
+  const updates = { data: { full_name: fullName } };
+  if (newPassword) updates.password = newPassword;
+
+  const { error } = await supabase.auth.updateUser(updates);
+
+  if (error) {
+    showToast('Error updating settings: ' + error.message);
+  } else {
+    showToast('Settings saved successfully!');
+    closeSettings();
+  }
 }
 
 function closeFileViewer() {
@@ -209,13 +163,71 @@ function closeFileViewer() {
   if (overlay) overlay.classList.remove('active');
 }
 
+// Toggle Settings Dropdown Menu
+function toggleSettingsMenu(event) {
+  if (event) event.stopPropagation();
+  const menu = document.getElementById('settings-dropdown-menu');
+  if (menu) {
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  }
+}
+
+// Close settings dropdown when clicking outside
+window.addEventListener('click', () => {
+  const menu = document.getElementById('settings-dropdown-menu');
+  if (menu) menu.style.display = 'none';
+});
+
 // ==========================================================================
-// 5. Global Button Interceptor for All Admin Pages
+// 5. Supabase Role Guard & Session Initialization
+// ==========================================================================
+
+async function initializePortalSession(requiredRole) {
+  if (typeof supabase === 'undefined') return;
+
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  if (error || !session) {
+    window.location.href = 'auth.html';
+    return;
+  }
+
+  const user = session.user;
+  const userRole = user.user_metadata?.role || user.app_metadata?.role || 'client';
+
+  // Strict Role Control Check
+  if (requiredRole === 'admin' && userRole !== 'admin') {
+    alert('Access Denied: Admin privileges required.');
+    window.location.href = 'client-dashboard.html';
+    return;
+  }
+
+  if (requiredRole === 'client' && userRole === 'admin') {
+    window.location.href = 'admin-dashboard.html';
+    return;
+  }
+
+  // Populate email badge in settings menu if present
+  const emailEl = document.getElementById('dropdown-user-email');
+  if (emailEl) emailEl.textContent = user.email;
+}
+
+// Global Logout Handler
+async function handleLogout(event) {
+  if (event) event.preventDefault();
+  if (typeof supabase !== 'undefined') {
+    await supabase.auth.signOut();
+  }
+  window.location.href = 'auth.html';
+}
+
+// ==========================================================================
+// 6. Global Button Interceptor for All Pages
 // ==========================================================================
 
 function bindAllButtonsAndLinks() {
   document.body.addEventListener('click', (e) => {
-    if (!e.target.closest('.action-menu-container') && !e.target.closest('.three-dots-container') && !e.target.closest('.folder-card-options')) {
+    if (!e.target.closest('.action-menu-container') && !e.target.closest('.three-dots-container') && !e.target.closest('.folder-card-options') && !e.target.closest('.settings-dropdown-container')) {
       document.querySelectorAll('.action-menu-dropdown.show, .folder-dropdown-menu.show').forEach(el => el.classList.remove('show'));
     }
 
@@ -234,15 +246,20 @@ function bindAllButtonsAndLinks() {
         return;
       }
 
-      // Whitelist anchor links (starting with #) and known pages
+      // Whitelist anchor links and known pages
       const isKnownPage = href.startsWith('#') ||
                           href.includes('index.html') ||
                           href.includes('admin-dashboard.html') ||
+                          href.includes('client-dashboard.html') ||
                           href.includes('clause-library.html') ||
                           href.includes('client-files.html') ||
+                          href.includes('file-manager.html') ||
+                          href.includes('client-calendar.html') ||
+                          href.includes('calendar.html') ||
                           href.includes('messages.html') ||
-                          href.includes('auth.html') ||
-                          href.includes('calendar.html');
+                          href.includes('client-messages.html') ||
+                          href.includes('ASTengine.html') ||
+                          href.includes('auth.html');
 
       if (!isKnownPage && !href.startsWith('http') && !href.startsWith('blob:')) {
         e.preventDefault();
@@ -288,12 +305,9 @@ function bindAllButtonsAndLinks() {
 }
 
 // ==========================================================================
-// 6. File Helper Functions
+// 7. File Helper Functions
 // ==========================================================================
 
-/**
- * Convert files to Base64, HTML text, or Mammoth docx parsing
- */
 function readFileContent(file) {
   return new Promise((resolve) => {
     const ext = file.name.split('.').pop().toLowerCase();
@@ -301,8 +315,8 @@ function readFileContent(file) {
     // Store Image & PDF files as Base64 Data URLs
     if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'pdf'].includes(ext)) {
       const reader = new FileReader();
-      reader.onload = () => resolve({ type: 'data_url', reader.result });
-      reader.onerror = () => resolve({ type: 'error', '' });
+      reader.onload = () => resolve({ type: 'data_url', result: reader.result });
+      reader.onerror = () => resolve({ type: 'error', result: '' });
       reader.readAsDataURL(file);
     }
     // DOCX Parsing via Mammoth.js
@@ -310,16 +324,16 @@ function readFileContent(file) {
       const reader = new FileReader();
       reader.onload = function(e) {
         mammoth.convertToHtml({ arrayBuffer: e.target.result })
-          .then(result => resolve({ type: 'html', result.value }))
-          .catch(() => resolve({ type: 'html', '' }));
+          .then(result => resolve({ type: 'html', result: result.value }))
+          .catch(() => resolve({ type: 'html', result: '' }));
       };
       reader.readAsArrayBuffer(file);
     }
     // Fallback TXT / Source files
     else {
       const reader = new FileReader();
-      reader.onload = () => resolve({ type: 'html', reader.result });
-      reader.onerror = () => resolve({ type: 'html', '' });
+      reader.onload = () => resolve({ type: 'html', result: reader.result });
+      reader.onerror = () => resolve({ type: 'html', result: '' });
       reader.readAsText(file);
     }
   });
@@ -339,10 +353,17 @@ function capitalizeWord(str) {
 }
 
 // ==========================================================================
-// 7. Page Load Initialization
+// 8. Page Load Initialization
 // ==========================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-  initDatabase();
   bindAllButtonsAndLinks();
 });
+
+if (typeof window.supabaseClient === 'undefined') {
+  window.supabaseClient = window.supabase.createClient(
+    'https://cyssvluzwzsftsskveet.supabase.co', 
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5c3N2bHV6d3pzZnRzc2t2ZWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDM5NTgsImV4cCI6MjEwNzU3OTk1OH0.kfBHS-DwCjZKdZ4_KkVTLXDuUi-niTGV5dbuUs3MU3w'
+  );
+}
+var supabase = window.supabaseClient;

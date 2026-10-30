@@ -1,16 +1,44 @@
 /**
  * Client File Manager Component Script
- * Handles file uploads, management, and TinyMCE Word Editor
+ * Handles file uploads, document management, TinyMCE Word Editor, and Supabase Database Sync
  */
 
-// Initialize Supabase Client for Cloud Storage Sync
-const SUPABASE_URL = 'https://cyssvluzwzsftsskveet.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5c3N2bHV6d3pzZnRzc2t2ZWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDM5NTgsImV4cCI6MjEwNzU3OTk1OH0.kfBHS-DwCjZKdZ4_KkVTLXDuUi-niTGV5dbuUs3MU3w';
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-window.supabaseClient = supabase;
+// Safely initialize Supabase client only if not already declared globally
+if (typeof window.supabaseClient === 'undefined') {
+  const SUPABASE_URL = 'https://cyssvluzwzsftsskveet.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5c3N2bHV6d3pzZnRzc2t2ZWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDM5NTgsImV4cCI6MjEwNzU3OTk1OH0.kfBHS-DwCjZKdZ4_KkVTLXDuUi-niTGV5dbuUs3MU3w';
+  window.supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+}
 
 let activeClientId = null;
 let pendingFiles = [];
+
+// ==========================================================================
+// Local Storage Folder DB Helpers (Prevents ReferenceError)
+// ==========================================================================
+
+function getFoldersDB() {
+  return JSON.parse(localStorage.getItem('client_folders_db')) || [];
+}
+
+function saveFoldersDB(folders) {
+  localStorage.setItem('client_folders_db', JSON.stringify(folders));
+}
+
+// Helper utility for capitalization
+function capitalizeWord(str) {
+  if (!str) return '';
+  return str.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+// Helper utility for file size formatting
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 // ==========================================================================
 // Client File Manager & Modal Handlers
@@ -96,14 +124,18 @@ function handleFileUpload(event) {
   event.target.value = '';
 }
 
+function closeClientModal() {
+  const modal = document.getElementById('client-name-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  pendingFiles = [];
+}
+
 // ==========================================================================
 // Read File Content & Upload Logic
 // ==========================================================================
 
-/**
- * Convert files to Base64, HTML text, or Mammoth docx parsing
- * Uses global.readFileContent function
- */
 async function confirmClientUpload() {
   const status = document.getElementById('modal-client-status')?.value || 'new';
   const entityType = document.querySelector('input[name="client_entity_type"]:checked')?.value || 'individual';
@@ -155,7 +187,7 @@ async function confirmClientUpload() {
         id: 'cli-' + Date.now(),
         name: folderName,
         formalName: fullFormalName,
-        type: entityType, // 'individual' or 'company'
+        type: entityType === 'company' ? 'company' : 'individual',
         files: []
       };
       folders.push(targetFolder);
@@ -166,17 +198,17 @@ async function confirmClientUpload() {
   if (!targetFolder) return;
 
   for (const file of pendingFiles) {
-    const parsed = await readFileContent(file);
+    const parsed = typeof readFileContent === 'function' ? await readFileContent(file) : { type: 'html', data: '' };
     const ext = file.name.split('.').pop().toLowerCase();
 
     let storedHtmlContent = '';
     let storedDataUrl = '';
 
     if (parsed.type === 'data_url') {
-      storedDataUrl = parsed.result;
+      storedDataUrl = parsed.data;
     } else {
-      storedHtmlContent = (parsed.result && parsed.result.trim() !== '')
-        ? parsed.result
+      storedHtmlContent = (parsed.data && parsed.data.trim() !== '')
+        ? parsed.data
         : `<h3><strong>LEGAL DOCUMENT DRAFT</strong></h3>
            <p><strong>CLIENT:</strong> ${targetFolder.formalName || targetFolder.name}</p>
            <p>Document Content for ${file.name}.</p>`;
@@ -192,29 +224,26 @@ async function confirmClientUpload() {
       dataUrl: storedDataUrl
     });
 
-    // --- SUPABASE STORAGE CLOUD SYNC ---
     if (window.supabaseClient) {
       try {
         const filePath = `${targetFolder.name}/${Date.now()}_${file.name}`;
-        const { error: uploadError } = await window.supabaseClient.storage
+        await window.supabaseClient.storage
           .from('client-documents')
           .upload(filePath, file);
-        if (uploadError) console.error('Supabase storage sync error:', uploadError.message);
       } catch (err) {
-        console.error('Failed to upload file to Supabase storage:', err);
+        console.error('Supabase storage upload error:', err);
       }
     }
   }
 
   saveFoldersDB(folders);
-
   activeClientId = targetFolder.id;
   closeClientModal();
   renderClientDirectory();
 }
 
 // ==========================================================================
-// Render Client Directory
+// Render Client Directory & Folders
 // ==========================================================================
 
 function renderClientDirectory() {
@@ -236,7 +265,6 @@ function renderClientDirectory() {
     folders.sort((a, b) => b.name.localeCompare(a.name));
   }
 
-  // ALL CLIENT DIRECTORIES VIEW (SEPARATED INTO INDIVIDUALS & ORGANIZATIONS)
   if (!activeClientId) {
     if (heading) heading.innerText = 'Client File Manager';
     if (subheading) subheading.innerText = 'Client Directories';
@@ -260,7 +288,7 @@ function renderClientDirectory() {
     }
 
     if (folderGrid) {
-      folderGrid.style.display = 'block'; // switch to block to contain sections
+      folderGrid.style.display = 'block';
       folderGrid.style.padding = '0';
 
       const individualFolders = filteredFolders.filter(f => !f.type || f.type === 'individual');
@@ -268,7 +296,6 @@ function renderClientDirectory() {
 
       let htmlContent = '';
 
-      // 1. Individual Clients Section
       htmlContent += `
         <div style="margin-bottom: 2rem;">
           <h3 style="font-size: 1.1rem; font-weight: 700; color: #334155; margin-bottom: 1rem; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0;">Individual Clients (${individualFolders.length})</h3>
@@ -280,7 +307,6 @@ function renderClientDirectory() {
         </div>
       `;
 
-      // 2. Organization / Business Clients Section
       htmlContent += `
         <div>
           <h3 style="font-size: 1.1rem; font-weight: 700; color: #334155; margin-bottom: 1rem; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0;">Organization / Business Clients (${companyFolders.length})</h3>
@@ -296,7 +322,6 @@ function renderClientDirectory() {
     }
 
   } else {
-    // INSIDE SPECIFIC CLIENT FOLDER
     const activeFolder = folders.find(f => f.id === activeClientId);
     if (!activeFolder) return navigateBackToFolders();
 
@@ -317,14 +342,8 @@ function renderClientDirectory() {
           <div class="three-dots-container" style="position: relative;">
             <button class="three-dots-btn" onclick="toggleFolderDropdown(event)" aria-label="Folder Options" style="background: transparent; border: none; font-size: 1.4rem; cursor: pointer; padding: 4px 8px; color: #475569;">&#8942;</button>
             <div class="folder-dropdown-menu" id="folder-dropdown-menu" style="right: 0; left: auto;">
-              <button class="folder-dropdown-item" onclick="renameClientFolder('${activeFolder.id}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                Rename Folder
-              </button>
-              <button class="folder-dropdown-item text-danger" onclick="deleteClientFolder('${activeFolder.id}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                Delete Folder
-              </button>
+              <button class="folder-dropdown-item" onclick="renameClientFolder('${activeFolder.id}')">Rename Folder</button>
+              <button class="folder-dropdown-item text-danger" onclick="deleteClientFolder('${activeFolder.id}')">Delete Folder</button>
             </div>
           </div>
         </div>
@@ -348,58 +367,18 @@ function renderClientDirectory() {
         ${folderHeaderHTML}
         <div class="file-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; padding: 10px 0;">
           ${files.map(f => {
-            const ext = (f.ext || f.name.split('.')).pop().toLowerCase();
-            const isMediaOrPdf = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext);
-            let iconSvg = '';
+            const ext = (f.ext || f.name.split('.').pop()).toLowerCase();
+            let iconSvg = `<div style="background: #2563eb; color: #fff; width: 64px; height: 72px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800;">W</div>`;
 
             if (ext === 'pdf') {
-              iconSvg = `<div style="background: #e11d48; color: #fff; width: 64px; height: 72px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">PDF</div>`;
-            } else if (ext === 'docx' || ext === 'doc') {
-              iconSvg = `<div style="background: #2563eb; color: #fff; width: 64px; height: 72px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">W</div>`;
-            } else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
-              if (f.dataUrl) {
-                iconSvg = `<div style="width: 64px; height: 72px; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"><img src="${f.dataUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="${f.name}" /></div>`;
-              } else {
-                iconSvg = `<div style="background: #10b981; color: #fff; width: 64px; height: 72px; border-radius: 6px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>`;
-              }
-            } else {
-              iconSvg = `<div style="background: #f8fafc; border: 2px solid #cbd5e1; color: #64748b; width: 64px; height: 72px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem;">${ext.toUpperCase()}</div>`;
+              iconSvg = `<div style="background: #e11d48; color: #fff; width: 64px; height: 72px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800;">PDF</div>`;
             }
 
             return `
-              <div class="file-box-tile" onclick="openClientFileItem('${f.id}')" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 10px 10px 10px; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; transition: all 0.2s ease; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-
-                <div class="action-menu-container" style="position: absolute; top: 6px; right: 6px; z-index: 5;" onclick="event.stopPropagation();">
-                  <button class="btn-three-dots" onclick="toggleActionMenu(event, 'file-menu-${f.id}')" title="File Actions" style="background: transparent; border: none; cursor: pointer; padding: 2px 6px; color: #64748b; font-size: 1.1rem;">
-                    &#8226;&#8226;&#8226;
-                  </button>
-                  <div id="file-menu-${f.id}" class="action-menu-dropdown right-aligned" style="min-width: 130px; text-align: left;">
-                    <button class="action-menu-item" onclick="event.stopPropagation(); openClientFileItem('${f.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                      ${isMediaOrPdf ? 'View File' : 'Edit File'}
-                    </button>
-                    <button class="action-menu-item" onclick="event.stopPropagation(); renameClientFile('${f.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                      Rename
-                    </button>
-                    <button class="action-menu-item item-delete" onclick="event.stopPropagation(); deleteClientFile('${f.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                <div style="margin-top: 10px; margin-bottom: 12px;">
-                  ${iconSvg}
-                </div>
-
-                <span style="font-size: 0.85rem; font-weight: 600; color: #1e293b; width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word;" title="${f.name}">
-                  ${f.name}
-                </span>
-
-                <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">
-                  ${f.size}
-                </span>
+              <div class="file-box-tile" onclick="openClientFileItem('${f.id}')" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 10px 10px 10px; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative;">
+                <div style="margin-top: 10px; margin-bottom: 12px;">${iconSvg}</div>
+                <span style="font-size: 0.85rem; font-weight: 600; color: #1e293b; width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${f.name}">${f.name}</span>
+                <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">${f.size}</span>
               </div>
             `;
           }).join('')}
@@ -409,10 +388,9 @@ function renderClientDirectory() {
   }
 }
 
-// Helper function to render individual folder box card HTML
 function renderFolderCardHTML(f) {
   return `
-    <div class="client-folder-card-box" onclick="openClientFolder('${f.id}')" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative;">
+    <div class="client-folder-card-box" onclick="openClientFolder('${f.id}')" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; position: relative;">
       <div style="display: flex; align-items: center; gap: 14px; overflow: hidden; flex: 1;">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#52AB62" stroke-width="2" style="flex-shrink: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
         <div style="overflow: hidden; padding-right: 8px;">
@@ -420,26 +398,12 @@ function renderFolderCardHTML(f) {
           <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #64748b;">${f.files ? f.files.length : 0} items</p>
         </div>
       </div>
-
-      <div class="folder-card-options" style="position: relative; flex-shrink: 0;" onclick="event.stopPropagation();">
-        <button class="three-dots-btn" onclick="toggleActionMenu(event, 'box-folder-menu-${f.id}')" aria-label="Folder Options" style="background: transparent; border: none; font-size: 1.3rem; cursor: pointer; padding: 4px 6px; color: #64748b;">&#8942;</button>
-        <div id="box-folder-menu-${f.id}" class="action-menu-dropdown right-aligned" style="min-width: 140px;">
-          <button class="action-menu-item" onclick="event.stopPropagation(); renameClientFolder('${f.id}')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            Rename
-          </button>
-          <button class="action-menu-item item-delete" onclick="event.stopPropagation(); deleteClientFolder('${f.id}')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            Delete
-          </button>
-        </div>
-      </div>
     </div>
   `;
 }
 
 // ==========================================================================
-// File Operations
+// Navigation & Actions
 // ==========================================================================
 
 function toggleActionMenu(event, menuId) {
@@ -447,15 +411,12 @@ function toggleActionMenu(event, menuId) {
   document.querySelectorAll('.action-menu-dropdown, .folder-dropdown-menu').forEach(el => {
     if (el.id !== menuId) el.classList.remove('show');
   });
-
-  const targetMenu = document.getElementById(menuId);
-  if (targetMenu) targetMenu.classList.toggle('show');
+  document.getElementById(menuId)?.classList.toggle('show');
 }
 
 function toggleFolderDropdown(event) {
   event.stopPropagation();
-  const dropdown = document.getElementById('folder-dropdown-menu');
-  if (dropdown) dropdown.classList.toggle('show');
+  document.getElementById('folder-dropdown-menu')?.classList.toggle('show');
 }
 
 function openClientFolder(folderId) {
@@ -472,128 +433,32 @@ function renameClientFolder(folderId) {
   let folders = getFoldersDB();
   const folder = folders.find(f => f.id === folderId);
   if (!folder) return;
-
   const newName = prompt(`Rename Folder "${folder.name}":`, folder.name);
-  if (newName && newName.trim() !== '' && newName.trim() !== folder.name) {
+  if (newName && newName.trim() !== '') {
     folder.name = newName.trim();
     saveFoldersDB(folders);
     renderClientDirectory();
-    if (typeof showToast === 'function') showToast(`Folder renamed to "${folder.name}"`);
   }
 }
 
 function deleteClientFolder(folderId) {
   let folders = getFoldersDB();
-  const folder = folders.find(f => f.id === folderId);
-
-  if (folder && confirm(`Delete folder "${folder.name}" and all its contents?`)) {
+  if (confirm(`Delete folder?`)) {
     folders = folders.filter(f => f.id !== folderId);
     saveFoldersDB(folders);
     if (activeClientId === folderId) activeClientId = null;
     renderClientDirectory();
-    if (typeof showToast === 'function') showToast('Folder deleted.');
   }
-}
-
-function renameClientFile(fileId) {
-  let folders = getFoldersDB();
-
-  if (!activeClientId) {
-    const parentFolder = folders.find(f => f.files && f.files.some(file => file.id === fileId));
-    if (parentFolder) activeClientId = parentFolder.id;
-  }
-
-  const folderIndex = folders.findIndex(f => f.id === activeClientId);
-  if (folderIndex === -1) return;
-
-  const file = folders[folderIndex].files.find(f => f.id === fileId);
-  if (!file) return;
-
-  const newName = prompt(`Rename File "${file.name}":`, file.name);
-  if (newName && newName.trim() !== '' && newName.trim() !== file.name) {
-    file.name = newName.trim();
-    saveFoldersDB(folders);
-    renderClientDirectory();
-    if (typeof showToast === 'function') showToast(`File renamed to "${file.name}"`);
-  }
-}
-
-function deleteClientFile(fileId) {
-  let folders = getFoldersDB();
-
-  if (!activeClientId) {
-    const parentFolder = folders.find(f => f.files && f.files.some(file => file.id === fileId));
-    if (parentFolder) activeClientId = parentFolder.id;
-  }
-
-  const folderIndex = folders.findIndex(f => f.id === activeClientId);
-  if (folderIndex === -1) return;
-
-  folders[folderIndex].files = folders[folderIndex].files.filter(f => f.id !== fileId);
-  saveFoldersDB(folders);
-  renderClientDirectory();
-  if (typeof showToast === 'function') showToast('File deleted.');
 }
 
 // ==========================================================================
-// Word / Docs Editor (TinyMCE)
+// File Viewers & TinyMCE Word Editor
 // ==========================================================================
 
 let activeEditingFileId = null;
 
-function initWordDocsEngine(callback) {
-  if (typeof tinymce === 'undefined') {
-    if (callback) callback();
-    return;
-  }
-
-  if (tinymce.get('word-editor-textarea')) {
-    tinymce.get('word-editor-textarea').remove();
-  }
-
-  tinymce.init({
-    selector: '#word-editor-textarea',
-    height: 600,
-    menubar: 'file edit view insert format tools table help',
-    plugins: [
-      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-      'insertdatetime', 'media', 'table', 'help', 'wordcount'
-    ],
-    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | lineheight | bullist numlist outdent indent | forecolor backcolor removeformat | insertclause',
-    content_style: `
-      body {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
-        line-height: 1.5;
-        color: #1a1a1a;
-        padding: 20px;
-      }
-      h1, h2, h3 { font-family: Arial, sans-serif; }
-    `,
-    setup: function (editor) {
-      editor.ui.registry.addButton('insertclause', {
-        text: '+ Insert Variable',
-        onAction: function () {
-          editor.insertContent('<strong>[INSERT_CLAUSE_HERE]</strong>');
-        }
-      });
-
-      editor.on('change keyup', function () {
-        const statusEl = document.getElementById('editor-save-status');
-        if (statusEl) statusEl.innerText = 'Unsaved changes...';
-      });
-
-      editor.on('init', function () {
-        if (callback) callback();
-      });
-    }
-  });
-}
-
-function openFileInWordEditor(fileId) {
+function openClientFileItem(fileId) {
   let folders = getFoldersDB();
-
   if (!activeClientId) {
     const parentFolder = folders.find(f => f.files && f.files.some(file => file.id === fileId));
     if (parentFolder) activeClientId = parentFolder.id;
@@ -601,89 +466,17 @@ function openFileInWordEditor(fileId) {
 
   const folder = folders.find(f => f.id === activeClientId);
   if (!folder) return;
-
   const file = folder.files.find(f => f.id === fileId);
   if (!file) return;
 
-  activeEditingFileId = file.id;
+  const ext = (file.ext || file.name.split('.').pop()).toLowerCase().trim();
 
-  const titleInput = document.getElementById('editor-document-title');
-  if (titleInput) titleInput.value = file.name;
-
-  const modal = document.getElementById('word-docs-editor-modal');
-  if (modal) {
-    modal.classList.add('active');
-    modal.style.display = 'flex';
-  }
-
-  initWordDocsEngine(() => {
-    const editorInstance = typeof tinymce !== 'undefined' ? tinymce.get('word-editor-textarea') : null;
-    const content = file.htmlContent || `<h3>${file.name}</h3><p>Legal document content...</p>`;
-
-    if (editorInstance) {
-      editorInstance.setContent(content);
-    } else {
-      const textarea = document.getElementById('word-editor-textarea');
-      if (textarea) textarea.value = content;
-    }
-  });
-}
-
-function saveWordDocument() {
-  let folders = getFoldersDB();
-
-  if (!activeClientId && activeEditingFileId) {
-    const parentFolder = folders.find(f => f.files && f.files.some(file => file.id === activeEditingFileId));
-    if (parentFolder) activeClientId = parentFolder.id;
-  }
-
-  if (!activeClientId || !activeEditingFileId) return;
-
-  let content = '';
-  const editorInstance = typeof tinymce !== 'undefined' ? tinymce.get('word-editor-textarea') : null;
-
-  if (editorInstance) {
-    content = editorInstance.getContent();
+  if (['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
+    openMediaViewer(file);
   } else {
-    const rawTextarea = document.getElementById('word-editor-textarea');
-    if (rawTextarea) content = rawTextarea.value;
+    openFileInWordEditor(fileId);
   }
-
-  const title = document.getElementById('editor-document-title')?.value.trim();
-
-  const folder = folders.find(f => f.id === activeClientId);
-  if (!folder) return;
-
-  const file = folder.files.find(f => f.id === activeEditingFileId);
-  if (!file) return;
-
-  if (title) file.name = title;
-  file.htmlContent = content;
-  file.size = formatFileSize(new Blob([content]).size);
-  file.date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-  saveFoldersDB(folders);
-
-  const statusEl = document.getElementById('editor-save-status');
-  if (statusEl) statusEl.innerText = 'All changes saved';
-
-  if (typeof showToast === 'function') showToast(`Document "${file.name}" saved successfully!`);
-
-  renderClientDirectory();
 }
-
-function closeWordDocEditor() {
-  const modal = document.getElementById('word-docs-editor-modal');
-  if (modal) {
-    modal.classList.remove('active');
-    modal.style.display = 'none';
-  }
-  activeEditingFileId = null;
-}
-
-// ==========================================================================
-// Media Viewer
-// ==========================================================================
 
 function openMediaViewer(file) {
   const modal = document.getElementById('file-viewer-modal-overlay');
@@ -696,52 +489,52 @@ function openMediaViewer(file) {
   if (title) title.innerText = file.name;
   if (sizeInfo) sizeInfo.innerText = `File Size: ${file.size} | Date: ${file.date}`;
 
-  const ext = (file.ext || file.name.split('.')).pop().toLowerCase().trim();
+  const ext = (file.ext || file.name.split('.').pop()).toLowerCase().trim();
 
   if (ext === 'pdf') {
     if (file.dataUrl) {
       content.innerHTML = `
         <object data="${file.dataUrl}" type="application/pdf" style="width: 100%; height: 600px; border: none; border-radius: 6px;">
           <embed src="${file.dataUrl}" type="application/pdf" style="width: 100%; height: 600px;" />
-          <div style="text-align: center; padding: 20px;">
-            <p style="color: #64748b;">Your browser cannot display inline PDFs directly.</p>
-            <a href="${file.dataUrl}" download="${file.name}" class="btn-green-pill btn-sm" style="text-decoration: none; display: inline-block; margin-top: 8px;">Download PDF</a>
-          </div>
         </object>
       `;
     } else {
-      content.innerHTML = `
-        <div style="text-align: center; padding: 40px;">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-          <h4 style="margin-top: 12px; color: #1e293b;">${file.name}</h4>
-          <p style="color: #64748b; font-size: 0.9rem;">No PDF binary data was captured during upload.</p>
-        </div>
-      `;
+      content.innerHTML = `<p style="text-align: center; color: #64748b;">No PDF data captured.</p>`;
     }
   } else {
     if (file.dataUrl) {
       content.innerHTML = `<img src="${file.dataUrl}" style="max-width: 100%; max-height: 520px; object-fit: contain; border-radius: 6px;" alt="${file.name}" />`;
     } else {
-      content.innerHTML = `
-        <div style="text-align: center; padding: 40px;">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-          <h4 style="margin-top: 12px; color: #1e293b;">${file.name}</h4>
-          <p style="color: #64748b; font-size: 0.9rem;">Image preview active.</p>
-        </div>
-      `;
+      content.innerHTML = `<p style="text-align: center; color: #64748b;">Image preview active.</p>`;
     }
   }
 
   modal.classList.add('active');
 }
 
-// ==========================================================================
-// Modal Handlers
-// ==========================================================================
+function initWordDocsEngine(callback) {
+  if (typeof tinymce === 'undefined') {
+    if (callback) callback();
+    return;
+  }
+  if (tinymce.get('word-editor-textarea')) tinymce.get('word-editor-textarea').remove();
 
-function openClientFileItem(fileId) {
+  tinymce.init({
+    selector: '#word-editor-textarea',
+    height: 600,
+    menubar: false,
+    plugins: ['lists', 'link', 'table'],
+    toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist',
+    setup: function (editor) {
+      editor.on('init', function () {
+        if (callback) callback();
+      });
+    }
+  });
+}
+
+function openFileInWordEditor(fileId) {
   let folders = getFoldersDB();
-
   if (!activeClientId) {
     const parentFolder = folders.find(f => f.files && f.files.some(file => file.id === fileId));
     if (parentFolder) activeClientId = parentFolder.id;
@@ -749,42 +542,109 @@ function openClientFileItem(fileId) {
 
   const folder = folders.find(f => f.id === activeClientId);
   if (!folder) return;
-
   const file = folder.files.find(f => f.id === fileId);
   if (!file) return;
 
-  const ext = (file.ext || file.name.split('.')).pop().toLowerCase().trim();
+  activeEditingFileId = file.id;
+  document.getElementById('editor-document-title').value = file.name;
+  document.getElementById('word-docs-editor-modal').style.display = 'flex';
 
-  if (['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
-    openMediaViewer(file);
-  } else {
-    openFileInWordEditor(fileId);
-  }
+  initWordDocsEngine(() => {
+    tinymce.get('word-editor-textarea')?.setContent(file.htmlContent || '');
+  });
+}
+
+function saveWordDocument() {
+  let folders = getFoldersDB();
+  const folder = folders.find(f => f.id === activeClientId);
+  if (!folder) return;
+  const file = folder.files.find(f => f.id === activeEditingFileId);
+  if (!file) return;
+
+  file.htmlContent = tinymce.get('word-editor-textarea')?.getContent() || '';
+  saveFoldersDB(folders);
+  document.getElementById('editor-save-status').innerText = 'All changes saved';
+  renderClientDirectory();
+}
+
+function closeWordDocEditor() {
+  document.getElementById('word-docs-editor-modal').style.display = 'none';
+  activeEditingFileId = null;
 }
 
 // ==========================================================================
-// Page Load Init
+// Page Load Init & Supabase Sync
 // ==========================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Check if we're on a client-files page
+document.addEventListener('DOMContentLoaded', async () => {
   if (window.location.pathname.includes('client-files.html')) {
+    await syncSupabaseCompiledFilesToFolders();
+
     renderClientDirectory();
     document.getElementById('client-search-input')?.addEventListener('keyup', renderClientDirectory);
     document.getElementById('alpha-sort-filter')?.addEventListener('change', renderClientDirectory);
 
-    // Setup client name modal handlers
-    const modalClientStatus = document.getElementById('modal-client-status');
-    const modalClientSelect = document.getElementById('modal-existing-client-select');
-
-    if (modalClientStatus) {
-      modalClientStatus.addEventListener('change', () => {
-        toggleExistingVsNewUI();
-      });
-    }
-
-    if (modalClientSelect) {
-      populateExistingClientsDropdown();
-    }
+    document.getElementById('modal-client-status')?.addEventListener('change', () => toggleExistingVsNewUI());
   }
 });
+
+async function syncSupabaseCompiledFilesToFolders() {
+  if (!window.supabaseClient) return;
+
+  try {
+    const { data: dbFiles, error } = await window.supabaseClient
+      .from('client_files')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !dbFiles) return;
+
+    let folders = getFoldersDB();
+    let updated = false;
+
+    dbFiles.forEach(dbFile => {
+      const folderName = dbFile.client_id ? capitalizeWord(dbFile.client_id.replace(/-/g, ' ')) : 'Acme Corp';
+      const clientType = dbFile.client_type || 'company';
+
+      let targetFolder = folders.find(f => f.name.toLowerCase() === folderName.toLowerCase());
+
+      if (!targetFolder) {
+        targetFolder = {
+          id: 'cli-sync-' + dbFile.client_id,
+          name: folderName,
+          formalName: folderName,
+          type: clientType,
+          files: []
+        };
+        folders.push(targetFolder);
+        updated = true;
+      }
+
+      const fileExists = targetFolder.files.some(f => f.name === dbFile.file_name);
+      if (!fileExists) {
+        targetFolder.files.unshift({
+          id: 'file-' + dbFile.id,
+          name: dbFile.file_name,
+          ext: 'docx',
+          size: '12 KB',
+          date: new Date(dbFile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          htmlContent: `<h3>${dbFile.file_name}</h3><pre>${dbFile.file_content || ''}</pre>`,
+          dataUrl: ''
+        });
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      saveFoldersDB(folders);
+    }
+  } catch (err) {
+    console.error('Error syncing Supabase compiled contracts:', err);
+  }
+}
+
+// Explicit global bindings for HTML event handlers
+window.closeClientModal = closeClientModal;
+window.confirmClientUpload = confirmClientUpload;
+window.triggerFileUpload = triggerFileUpload;
+window.handleFileUpload = handleFileUpload;
